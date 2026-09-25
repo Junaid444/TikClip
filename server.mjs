@@ -51,4 +51,8 @@ if (process.env.NODE_ENV === 'production') {
   app.use((_request, response) => response.sendFile(path.join(root, 'dist', 'index.html')))
 }
 
-app.listen(port, () => console.log(`TikClip API running at http://localhost:${port}`))
+export default app
+
+if (!process.env.VERCEL) {
+  app.listen(port, () => console.log(`TikClip API running at http://localhost:${port}`))
+}
