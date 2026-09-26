@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.css'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -6,12 +7,18 @@ app.innerHTML = `
   <div class="creator-credit" aria-hidden="true">Created By Junaid Rafi Shah</div>
   <header class="topbar">
     <a class="brand" href="/" aria-label="TikClip home"><span class="brand-mark">↘</span><span>tikclip</span></a>
-    <span class="topbar-note"><span class="status-dot"></span> fast, clean downloads</span>
+    <div class="topbar-actions">
+      <span class="topbar-note"><span class="status-dot"></span> fast, clean downloads</span>
+      <div class="theme-switch" role="group" aria-label="Color theme">
+        <button class="theme-option" type="button" data-theme-option="light">Day</button>
+        <button class="theme-option" type="button" data-theme-option="dark">Dark</button>
+      </div>
+    </div>
   </header>
   <main>
     <section class="hero">
       <div class="eyebrow"><span class="eyebrow-line"></span> TikTok video tool</div>
-      <h1>Your video.<br><em>Just the good part.</em></h1>
+      <h1>Created by<br><em>Junaid Rafi Shah</em></h1>
       <p class="lede">Save TikTok videos as crisp MP4s, without the watermark. Paste a link and let TikClip handle the rest.</p>
       <form class="download-form" id="download-form">
         <label for="video-url" class="sr-only">TikTok video link</label>
@@ -54,6 +61,26 @@ const pasteButton = document.querySelector<HTMLButtonElement>('#paste-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
+const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
+type Theme = 'light' | 'dark'
+
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme
+  localStorage.setItem('tikclip-theme', theme)
+  themeButtons.forEach((themeButton) => {
+    themeButton.setAttribute('aria-pressed', String(themeButton.dataset.themeOption === theme))
+  })
+}
+
+const savedTheme = localStorage.getItem('tikclip-theme')
+applyTheme(savedTheme === 'dark' ? 'dark' : 'light')
+
+themeButtons.forEach((themeButton) => {
+  themeButton.addEventListener('click', () => {
+    const theme = themeButton.dataset.themeOption
+    if (theme === 'light' || theme === 'dark') applyTheme(theme)
+  })
+})
 
 pasteButton.addEventListener('click', async () => {
   try {

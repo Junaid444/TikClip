@@ -1,0 +1,162 @@
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.theme-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #b6bcb2;
+  background: #faf8f2;
+}
+
+.theme-option {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  color: #65706a;
+  background: transparent;
+  cursor: pointer;
+  font: 700 10px Arial, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  transition: color .18s, background .18s;
+}
+
+.theme-option[aria-pressed='true'] {
+  color: #f4f0e8;
+  background: #17231f;
+}
+
+.theme-option:focus-visible {
+  outline: 2px solid #71816c;
+  outline-offset: 2px;
+}
+
+.brand-mark {
+  color: #17231f;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  background: #17201b;
+}
+
+:root[data-theme='dark'] #app {
+  color: #e8eee5;
+  background: #17201b;
+  transition: background-color .25s, color .25s;
+}
+
+:root[data-theme='dark'] .creator-credit {
+  background: #26342c;
+  box-shadow: 10px 10px 0 #3d4b40;
+}
+
+:root[data-theme='dark'] .topbar,
+:root[data-theme='dark'] .how-it-works,
+:root[data-theme='dark'] footer {
+  border-color: #3b4840;
+}
+
+:root[data-theme='dark'] .brand,
+:root[data-theme='dark'] h1,
+:root[data-theme='dark'] .section-heading h2,
+:root[data-theme='dark'] .input-shell input {
+  color: #e8eee5;
+}
+
+:root[data-theme='dark'] .topbar-note,
+:root[data-theme='dark'] .eyebrow,
+:root[data-theme='dark'] .section-kicker,
+:root[data-theme='dark'] .lede,
+:root[data-theme='dark'] .download-options,
+:root[data-theme='dark'] .privacy-note,
+:root[data-theme='dark'] footer,
+:root[data-theme='dark'] .step p {
+  color: #aab5ab;
+}
+
+:root[data-theme='dark'] .eyebrow-line {
+  background: #aab5ab;
+}
+
+:root[data-theme='dark'] .hero h1 em,
+:root[data-theme='dark'] .link-icon {
+  color: #b5c6a4;
+}
+
+:root[data-theme='dark'] .input-shell,
+:root[data-theme='dark'] .option-label select {
+  border-color: #536156;
+  color: #e8eee5;
+  background: #202a25;
+}
+
+:root[data-theme='dark'] .input-shell input::placeholder {
+  color: #98a69b;
+}
+
+:root[data-theme='dark'] .toggle-track {
+  background: #536156;
+}
+
+:root[data-theme='dark'] .toggle-track::after {
+  background: #e8eee5;
+}
+
+:root[data-theme='dark'] .audio-toggle input:checked + .toggle-track {
+  background: #91ad7d;
+}
+
+:root[data-theme='dark'] .download-button {
+  color: #17231f;
+  background: #d6ff5e;
+}
+
+:root[data-theme='dark'] .download-button:hover {
+  background: #c1e94a;
+}
+
+:root[data-theme='dark'] .form-message.error {
+  color: #f09a83;
+}
+
+:root[data-theme='dark'] .form-message.success {
+  color: #9fcd83;
+}
+
+:root[data-theme='dark'] .step-number {
+  color: #98a69b;
+}
+
+:root[data-theme='dark'] .steps,
+:root[data-theme='dark'] .step {
+  border-color: #3b4840;
+}
+
+:root[data-theme='dark'] .theme-switch {
+  border-color: #536156;
+  background: #202a25;
+}
+
+:root[data-theme='dark'] .theme-option {
+  color: #aab5ab;
+}
+
+:root[data-theme='dark'] .theme-option[aria-pressed='true'] {
+  color: #17231f;
+  background: #d6ff5e;
+}
+
+:root[data-theme='dark'] .theme-option:focus-visible {
+  outline-color: #d6ff5e;
+}
+
+@media (max-width: 700px) {
+  .topbar-actions {
+    gap: 0;
+  }
+}
