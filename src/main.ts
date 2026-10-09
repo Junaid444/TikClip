@@ -40,6 +40,10 @@ app.innerHTML = `
         <button class="download-button" id="download-button" type="submit"><span>Download video</span><span class="button-arrow">↗</span></button>
       </form>
       <p class="form-message" id="form-message" role="status"></p>
+      
+      <!-- NAYA DIV JAHAN PICTURES SHOW HONGI -->
+      <div id="image-results" style="margin-top: 20px; width: 100%;"></div>
+
       <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch this video</p>
     </section>
     <section class="how-it-works" aria-labelledby="how-title">
@@ -61,6 +65,7 @@ const pasteButton = document.querySelector<HTMLButtonElement>('#paste-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
+const imageResults = document.querySelector<HTMLDivElement>('#image-results')! // Naya element select kiya
 const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
 type Theme = 'light' | 'dark'
 
@@ -107,18 +112,64 @@ form.addEventListener('submit', async (event) => {
 
   button.disabled = true
   const isAudio = audioOnly.checked
-  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
+  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding media...'
   message.textContent = ''
+  imageResults.innerHTML = '' // Nayi request par purani pictures clear karna
+
   try {
-    const response = await fetch('/api/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) })
+    // SAB SE PEHLE CHECK KAREIN KE KYA YEH PICTURE SLIDESHOW HAI
+    if (!isAudio) { // Agar user ne audio only select nahi kiya
+      const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
+      const tikwmData = await tikwmResponse.json() as { code?: number; data?: { images?: string[] } };
+
+      if (tikwmData.code === 0 && tikwmData.data && tikwmData.data.images && tikwmData.data.images.length > 0) {
+        // Pictures mil gayin! Ab unhein UI mein show karein
+        message.textContent = 'Pictures found! Ready to download.';
+        message.className = 'form-message success';
+        
+        let imagesHtml = `
+          <div style="display: flex; gap: 15px; overflow-x: auto; padding: 15px 0; max-width: 100%; scrollbar-width: thin;">
+        `;
+        
+        tikwmData.data.images.forEach((imgUrl: string, index: number) => {
+          imagesHtml += `
+            <div style="min-width: 180px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px;">
+              <img src="${imgUrl}" alt="TikTok Picture ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+              <a href="${imgUrl}" target="_blank" download="tikclip-image-${index + 1}.jpg" style="background-color: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Download</a>
+            </div>
+          `;
+        });
+        imagesHtml += '</div>';
+        
+        imageResults.innerHTML = imagesHtml;
+        
+        // Button ko wapis normal state mein le aayen aur function yahin khatam kar dein (Backend API par na bhejein)
+        button.disabled = false;
+        button.querySelector('span')!.textContent = 'Download video';
+        return; 
+      }
+    }
+
+    // AGAR PICTURES NAHI HAIN (YA AUDIO ONLY HAI), TOH APNA PURANA VIDEO API CALL CHALAYEIN
+    button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
+    
+    const response = await fetch('/api/download', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ url, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) 
+    })
+    
     const data = await response.json() as { error?: string; downloadUrl?: string; filename?: string }
+    
     if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
+    
     const download = document.createElement('a')
     download.href = data.downloadUrl
-    download.download = data.filename || 'dropclip-video.mp4'
+    download.download = data.filename || 'tikclip-video.mp4'
     document.body.appendChild(download)
     download.click()
     download.remove()
+    
     message.textContent = isAudio ? 'Your audio download is on its way.' : 'Your video download is on its way.'
     message.className = 'form-message success'
   } catch (error) {
