@@ -41,7 +41,6 @@ app.innerHTML = `
       </form>
       <p class="form-message" id="form-message" role="status"></p>
       
-      <!-- NAYA DIV JAHAN PICTURES SHOW HONGI -->
       <div id="image-results" style="margin-top: 20px; width: 100%;"></div>
 
       <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch this video</p>
@@ -65,7 +64,7 @@ const pasteButton = document.querySelector<HTMLButtonElement>('#paste-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
-const imageResults = document.querySelector<HTMLDivElement>('#image-results')! // Naya element select kiya
+const imageResults = document.querySelector<HTMLDivElement>('#image-results')!
 const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
 type Theme = 'light' | 'dark'
 
@@ -102,32 +101,36 @@ pasteButton.addEventListener('click', async () => {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
-  const url = input.value.trim()
-  if (!url || !/(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)/i.test(url)) {
+  const rawUrl = input.value.trim()
+  
+  if (!rawUrl || !/(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)/i.test(rawUrl)) {
     message.textContent = 'That does not look like a TikTok link yet.'
     message.className = 'form-message error'
     input.focus()
     return
   }
 
+  // URL CLEANING: Link mein se extra "?" tracking data nikalna taake API confuse na ho
+  const url = rawUrl.split('?')[0];
+
   button.disabled = true
   const isAudio = audioOnly.checked
   button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding media...'
   message.textContent = ''
-  imageResults.innerHTML = '' // Nayi request par purani pictures clear karna
+  imageResults.innerHTML = '' 
 
-  // 1. SIRF PICTURE CHECK KAREIN (Safe block mein taake error par crash na ho)
   if (!isAudio) { 
     try {
+      console.log("Checking for pictures via TikWM API for URL:", url);
       const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
-      // Text ke zariye parse karein taake agar empty response ho toh error handle ho sake
       const responseText = await tikwmResponse.text();
       
       if (responseText) {
         const tikwmData = JSON.parse(responseText);
+        console.log("TikWM API Full Response:", tikwmData); // Debug log
         
+        // Check if pictures exist in the response
         if (tikwmData?.code === 0 && tikwmData?.data?.images && tikwmData.data.images.length > 0) {
-          // Pictures mil gayin! Ab unhein UI mein show karein
           message.textContent = 'Pictures found! Ready to download.';
           message.className = 'form-message success';
           
@@ -146,30 +149,28 @@ form.addEventListener('submit', async (event) => {
           imagesHtml += '</div>';
           
           imageResults.innerHTML = imagesHtml;
-          
-          // Button ko wapis normal state mein le aayen aur function yahin khatam kar dein
           button.disabled = false;
           button.querySelector('span')!.textContent = 'Download video';
           return; 
+        } else {
+          console.log("No images found in response, falling back to video API.");
         }
       }
     } catch (picError) {
-      console.warn("Picture API did not return valid pictures, proceeding to video download...");
-      // Agar yahan error aaye toh hum chup chaap video download ki taraf nikal jayenge
+      console.warn("Picture API failed, error:", picError);
     }
   }
 
-  // 2. AGAR PICTURES NAHI HAIN (YA AUDIO ONLY HAI), TOH ORIGINAL VIDEO/AUDIO CODE CHALAYEIN
+  // AGAR PICTURES NAHI HAIN TOH ORIGINAL VIDEO API
   button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
   
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ url, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) 
+      body: JSON.stringify({ url: rawUrl, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) // Original link for backend
     })
     
-    // Yahan backend API ka safely check kar rahe hain
     const backendResponseText = await response.text();
     if (!backendResponseText) {
        throw new Error("Our server returned an empty response. Please try again.");
