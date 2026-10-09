@@ -127,9 +127,12 @@ form.addEventListener('submit', async (event) => {
   message.textContent = ''
   mediaPreview.innerHTML = '' 
 
+  const cleanUrl = rawUrl.split('?')[0]
+
   try {
-    // Hamari apni API proxy call taake CORS ka masla na aaye
-    const res = await fetch(`/api/tikwm?url=${encodeURIComponent(rawUrl)}`)
+    // CORS Bypass using corsproxy.io
+    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`)}`
+    const res = await fetch(apiUrl)
     const tikwmData = await res.json()
 
     if (tikwmData?.code === 0 && tikwmData?.data) {
@@ -140,7 +143,7 @@ form.addEventListener('submit', async (event) => {
       const comments = data.comment_count || 41
       const shares = data.share_count || 967
 
-      // 1. SLIDESHOW PICTURES (SSSTik Exact UI Layout)
+      // 1. EXACT SSSTIK SLIDESHOW CARD (MATCHING VIDEO DEMO)
       if (!isAudio && data.images && data.images.length > 0) {
         message.textContent = 'Preview Ready!'
         message.className = 'form-message success'
@@ -148,7 +151,7 @@ form.addEventListener('submit', async (event) => {
         const imagesList = data.images as string[]
 
         let dotsHtml = imagesList.map((_, idx) => 
-          `<span class="slide-dot ${idx === 0 ? 'active' : ''}" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${idx === 0 ? '#38adf2' : 'rgba(255,255,255,0.4)'}; margin:0 3px; transition:0.2s;"></span>`
+          `<span class="slide-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${idx === 0 ? '#38adf2' : 'rgba(255,255,255,0.4)'}; margin:0 3px; transition:0.2s;"></span>`
         ).join('')
 
         let cardHtml = `
@@ -161,8 +164,8 @@ form.addEventListener('submit', async (event) => {
                   <img id="carousel-img" src="${imagesList[0]}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
                   
                   ${imagesList.length > 1 ? `
-                    <button id="prev-slide" style="position: absolute; left: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px;">❮</button>
-                    <button id="next-slide" style="position: absolute; right: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px;">❯</button>
+                    <button id="prev-slide" style="position: absolute; left: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">❮</button>
+                    <button id="next-slide" style="position: absolute; right: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">❯</button>
                   ` : ''}
 
                   <!-- Dots indicators -->
@@ -248,7 +251,7 @@ form.addEventListener('submit', async (event) => {
         return
       }
 
-      // 2. SINGLE VIDEO PREVIEW
+      // 2. VIDEO CARD LAYOUT
       if (data.play) {
         message.textContent = 'Preview Ready!'
         message.className = 'form-message success'
@@ -273,10 +276,10 @@ form.addEventListener('submit', async (event) => {
       }
     }
   } catch (err) {
-    console.warn("Proxy preview failed, fallback to backend download...", err)
+    console.warn("Direct proxy failed, fallback to backend download...", err)
   }
 
-  // FALLBACK BACKEND ROUTE
+  // FALLBACK BACKEND ROUTE (Only used if proxy fails completely)
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
