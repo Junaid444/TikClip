@@ -207,7 +207,7 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-// 2. TIKTOK SLIDES DIRECT DOWNLOAD HANDLER (Dual API Engine)
+// 2. TIKTOK SLIDES DOWNLOAD HANDLER (Serverless API Proxy)
 slideForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = slideInput.value.trim()
@@ -223,81 +223,52 @@ slideForm.addEventListener('submit', async (event) => {
   slideMessage.textContent = ''
   slideResults.innerHTML = ''
 
-  const cleanUrl = rawUrl.split('?')[0]
-
-  let imagesList: string[] = []
-
-  // ENGINE 1: LOVETIK API (Very Fast & Reliable for Photo Posts)
   try {
-    const formData = new URLSearchParams()
-    formData.append('query', cleanUrl)
+    // Calling backend Serverless API (No CORS issue)
+    const res = await fetch(`/api/slides?url=${encodeURIComponent(rawUrl)}`)
+    const data = await res.json()
 
-    const loveRes = await fetch('https://lovetik.com/api/ajax/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-      body: formData
-    })
+    if (res.ok && data.images && data.images.length > 0) {
+      const imagesList = data.images as string[]
 
-    const loveData = await loveRes.json()
+      slideMessage.textContent = `Found ${imagesList.length} slides! Direct download starting...`
+      slideMessage.style.color = '#16a34a'
 
-    if (loveData?.status === 'ok' && loveData?.images && loveData.images.length > 0) {
-      imagesList = loveData.images
+      // Auto trigger download for all slides
+      imagesList.forEach((imgUrl, idx) => {
+        setTimeout(() => {
+          const a = document.createElement('a')
+          a.href = imgUrl
+          a.target = '_blank'
+          a.download = `tikclip-slide-${idx + 1}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }, idx * 300)
+      })
+
+      // Show preview grid below
+      let slidesHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">`
+      imagesList.forEach((imgUrl, idx) => {
+        slidesHtml += `
+          <div style="min-width: 120px; text-align: center; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #ccc;">
+            <img src="${imgUrl}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 4px;" />
+            <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: inline-block; margin-top: 6px; background: #38adf2; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold;">Slide ${idx + 1}</a>
+          </div>
+        `
+      })
+      slidesHtml += `</div>`
+      slideResults.innerHTML = slidesHtml
+
+    } else {
+      slideMessage.textContent = data.error || 'Could not extract photo slides from this link.'
+      slideMessage.style.color = '#dc2626'
     }
-  } catch (e) {
-    console.warn("LoveTik API failed, trying TikWM fallback...")
-  }
-
-  // ENGINE 2: TIKWM FALLBACK (If Engine 1 fails)
-  if (imagesList.length === 0) {
-    try {
-      const tikwmUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`
-      const tikRes = await fetch(tikwmUrl)
-      const tikData = await tikRes.json()
-
-      if (tikData?.code === 0 && tikData?.data?.images && tikData.data.images.length > 0) {
-        imagesList = tikData.data.images
-      }
-    } catch (e) {
-      console.warn("TikWM API also failed...")
-    }
-  }
-
-  // SUCCESS RENDER & DIRECT DOWNLOAD TRIGGER
-  if (imagesList.length > 0) {
-    slideMessage.textContent = `Found ${imagesList.length} slides! Direct download starting...`
-    slideMessage.style.color = '#16a34a'
-
-    // Auto trigger downloads
-    imagesList.forEach((imgUrl, idx) => {
-      setTimeout(() => {
-        const a = document.createElement('a')
-        a.href = imgUrl
-        a.target = '_blank'
-        a.download = `tikclip-slide-${idx + 1}.jpg`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-      }, idx * 300)
-    })
-
-    // Display slides grid
-    let slidesHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">`
-    imagesList.forEach((imgUrl, idx) => {
-      slidesHtml += `
-        <div style="min-width: 120px; text-align: center; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #ccc;">
-          <img src="${imgUrl}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 4px;" />
-          <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: inline-block; margin-top: 6px; background: #38adf2; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold;">Slide ${idx + 1}</a>
-        </div>
-      `
-    })
-    slidesHtml += `</div>`
-    slideResults.innerHTML = slidesHtml
-
-  } else {
-    slideMessage.textContent = 'Could not extract photo slides from this link. Make sure it is a TikTok photo post.'
+  } catch (err) {
+    slideMessage.textContent = 'Failed to connect to server. Please try again.'
     slideMessage.style.color = '#dc2626'
+  } finally {
+    slideSubmitBtn.disabled = false
+    slideSubmitBtn.textContent = 'Download Slides'
   }
-
-  slideSubmitBtn.disabled = false
-  slideSubmitBtn.textContent = 'Download Slides'
 })
