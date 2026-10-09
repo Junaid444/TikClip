@@ -46,7 +46,7 @@ app.innerHTML = `
       <!-- 2. DEDICATED TIKTOK SLIDES / PHOTO DOWNLOADER SECTION -->
       <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; text-align: left;">
         <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 16px; font-weight: bold; color: var(--text-color, #1e293b);">🖼️ TikTok Photo / Slide Downloader</h3>
-        <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; opacity: 0.8;">Paste a TikTok slideshow link below to download all full-res photos directly.</p>
+        <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; opacity: 0.8;">Paste a TikTok slideshow link below to view all full-res photos and download your favorite slides.</p>
         
         <form id="slide-download-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
           <div style="flex: 1 1 250px; display: flex; align-items: center; background: var(--input-bg, #fff); border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 4px 8px;">
@@ -54,7 +54,7 @@ app.innerHTML = `
             <button id="slide-clear-btn" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 4px;">Clear</button>
             <button id="slide-paste-btn" type="button" style="background: #a3e635; color: #000; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Paste</button>
           </div>
-          <button id="slide-submit-btn" type="submit" style="background: #38adf2; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">Download Slides</button>
+          <button id="slide-submit-btn" type="submit" style="background: #38adf2; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">Fetch Slides</button>
         </form>
         <p id="slide-message" style="margin-top: 10px; margin-bottom: 0; font-size: 13px; font-weight: 600;"></p>
         <div id="slide-results" style="margin-top: 15px;"></div>
@@ -207,7 +207,7 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-// 2. TIKTOK SLIDES DOWNLOAD HANDLER (Serverless API Proxy)
+// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER
 slideForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = slideInput.value.trim()
@@ -224,41 +224,51 @@ slideForm.addEventListener('submit', async (event) => {
   slideResults.innerHTML = ''
 
   try {
-    // Calling backend Serverless API (No CORS issue)
     const res = await fetch(`/api/slides?url=${encodeURIComponent(rawUrl)}`)
     const data = await res.json()
 
     if (res.ok && data.images && data.images.length > 0) {
       const imagesList = data.images as string[]
 
-      slideMessage.textContent = `Found ${imagesList.length} slides! Direct download starting...`
+      slideMessage.textContent = `Found ${imagesList.length} slides! Select individual slides to download below.`
       slideMessage.style.color = '#16a34a'
 
-      // Auto trigger download for all slides
-      imagesList.forEach((imgUrl, idx) => {
-        setTimeout(() => {
-          const a = document.createElement('a')
-          a.href = imgUrl
-          a.target = '_blank'
-          a.download = `tikclip-slide-${idx + 1}.jpg`
-          document.body.appendChild(a)
-          a.click()
-          a.remove()
-        }, idx * 300)
-      })
+      let slidesHtml = `
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; font-weight: bold; opacity: 0.8;">Total: ${imagesList.length} Photos</span>
+          <button id="download-all-slides-btn" type="button" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download All (${imagesList.length})</button>
+        </div>
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; scrollbar-width: thin;">
+      `
 
-      // Show preview grid below
-      let slidesHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">`
       imagesList.forEach((imgUrl, idx) => {
         slidesHtml += `
-          <div style="min-width: 120px; text-align: center; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #ccc;">
-            <img src="${imgUrl}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 4px;" />
-            <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: inline-block; margin-top: 6px; background: #38adf2; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold;">Slide ${idx + 1}</a>
+          <div style="min-width: 150px; flex: 0 0 auto; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+            <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 6px;" />
+            <div>
+              <span style="display: block; font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 4px;">Slide ${idx + 1}</span>
+              <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: bold;">Download Photo</a>
+            </div>
           </div>
         `
       })
       slidesHtml += `</div>`
       slideResults.innerHTML = slidesHtml
+
+      // Handlers for Download All
+      document.querySelector('#download-all-slides-btn')?.addEventListener('click', () => {
+        imagesList.forEach((imgUrl, idx) => {
+          setTimeout(() => {
+            const a = document.createElement('a')
+            a.href = imgUrl
+            a.target = '_blank'
+            a.download = `tikclip-slide-${idx + 1}.jpg`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+          }, idx * 300)
+        })
+      })
 
     } else {
       slideMessage.textContent = data.error || 'Could not extract photo slides from this link.'
@@ -269,6 +279,6 @@ slideForm.addEventListener('submit', async (event) => {
     slideMessage.style.color = '#dc2626'
   } finally {
     slideSubmitBtn.disabled = false
-    slideSubmitBtn.textContent = 'Download Slides'
+    slideSubmitBtn.textContent = 'Fetch Slides'
   }
 })
