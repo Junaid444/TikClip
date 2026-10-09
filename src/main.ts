@@ -138,71 +138,99 @@ form.addEventListener('submit', async (event) => {
 
       if (tikwmData?.code === 0 && tikwmData?.data) {
         const data = tikwmData.data
+        const authorName = data.author?.nickname || 'TikTok User'
+        const authorAvatar = data.author?.avatar || 'https://www.tiktok.com/favicon.ico'
+        const likes = data.digg_count || 0
+        const comments = data.comment_count || 0
+        const shares = data.share_count || 0
 
-        // 1. SLIDESHOW PICTURES PREVIEW & SELECTIVE DOWNLOAD
+        // CARD INTERFACE LIKE IMAGE 2
         if (!isAudio && data.images && data.images.length > 0) {
-          message.textContent = 'Preview Ready! Select the pictures you want to download.'
+          message.textContent = 'Preview Ready!'
           message.className = 'form-message success'
 
-          let previewHtml = `
-            <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin:0; font-size: 16px;">Pictures Found (${data.images.length})</h3>
-                <div>
-                  <button id="select-all-btn" type="button" style="background: #e2e8f0; color: #1e293b; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 8px;">Select All</button>
-                  <button id="download-selected-btn" type="button" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">Download Selected</button>
+          const imagesList = data.images as string[]
+
+          let cardHtml = `
+            <div style="background: #5b5182; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #fff; font-family: sans-serif; text-align: left;">
+              <div style="display: flex; flex-wrap: wrap;">
+                
+                <!-- LEFT SIDE: SLIDER -->
+                <div style="flex: 1 1 300px; position: relative; background: #1a1a24; display: flex; flex-direction: column;">
+                  <div style="position: relative; width: 100%; height: 320px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <img id="carousel-img" src="${imagesList[0]}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                    
+                    ${imagesList.length > 1 ? `
+                      <button id="prev-slide" style="position: absolute; left: 10px; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 18px;">❮</button>
+                      <button id="next-slide" style="position: absolute; right: 10px; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 18px;">❯</button>
+                    ` : ''}
+                  </div>
+                  <a id="download-current-slide" href="${imagesList[0]}" target="_blank" download="tikclip-slide-1.jpg" style="background: #38adf2; color: #fff; text-align: center; padding: 12px; text-decoration: none; font-weight: bold; font-size: 15px; display: block;">Download this slide</a>
                 </div>
+
+                <!-- RIGHT SIDE: BUTTONS & INFO -->
+                <div style="flex: 1 1 280px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 15px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="${authorAvatar}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff;" />
+                    <span style="font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">${authorName}</span>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="download-all-zip" style="background: #38adf2; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s;">Download all (${imagesList.length})</button>
+                    ${data.play ? `<a href="${data.play}" target="_blank" download="tikclip-slideshow.mp4" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold; display: block;">Download as video</a>` : ''}
+                    ${data.music ? `<a href="${data.music}" target="_blank" download="tikclip-audio.mp3" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold; display: block;">Download MP3</a>` : ''}
+                  </div>
+
+                  <!-- BOTTOM COUNTS -->
+                  <div style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                    <span>👍 ${likes}</span>
+                    <span>💬 ${comments}</span>
+                    <span>🔗 ${shares}</span>
+                  </div>
+                </div>
+
               </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; max-height: 450px; overflow-y: auto; padding-right: 5px;">
+            </div>
           `
 
-          data.images.forEach((imgUrl: string, index: number) => {
-            previewHtml += `
-              <div style="position: relative; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #000; display: flex; flex-direction: column;">
-                <label style="position: absolute; top: 8px; left: 8px; z-index: 10; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; cursor: pointer;">
-                  <input type="checkbox" class="img-select-checkbox" data-img-url="${imgUrl}" checked style="accent-color: #a3e635; cursor: pointer;" />
-                </label>
-                <img src="${imgUrl}" alt="Slide ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover;" />
-                <a href="${imgUrl}" target="_blank" download="tikclip-img-${index + 1}.jpg" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">Download This</a>
-              </div>
-            `
+          mediaPreview.innerHTML = cardHtml
+
+          // Carousel Functionality
+          let currentIndex = 0
+          const imgEl = document.querySelector<HTMLImageElement>('#carousel-img')!
+          const downloadBtn = document.querySelector<HTMLAnchorElement>('#download-current-slide')!
+          const prevBtn = document.querySelector('#prev-slide')
+          const nextBtn = document.querySelector('#next-slide')
+
+          const updateSlide = (index: number) => {
+            currentIndex = index
+            imgEl.src = imagesList[currentIndex]
+            downloadBtn.href = imagesList[currentIndex]
+            downloadBtn.download = `tikclip-slide-${currentIndex + 1}.jpg`
+          }
+
+          prevBtn?.addEventListener('click', () => {
+            const nextIdx = currentIndex === 0 ? imagesList.length - 1 : currentIndex - 1
+            updateSlide(nextIdx)
           })
 
-          previewHtml += `</div></div>`
-          mediaPreview.innerHTML = previewHtml
-
-          // Select All Button
-          const selectAllBtn = document.querySelector('#select-all-btn')
-          const downloadSelectedBtn = document.querySelector('#download-selected-btn')
-
-          let allSelected = true
-          selectAllBtn?.addEventListener('click', () => {
-            const checkboxes = document.querySelectorAll<HTMLInputElement>('.img-select-checkbox')
-            allSelected = !allSelected
-            checkboxes.forEach((cb) => (cb.checked = allSelected))
-            selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All'
+          nextBtn?.addEventListener('click', () => {
+            const nextIdx = currentIndex === imagesList.length - 1 ? 0 : currentIndex + 1
+            updateSlide(nextIdx)
           })
 
-          // Download Selected Button
-          downloadSelectedBtn?.addEventListener('click', () => {
-            const checkboxes = document.querySelectorAll<HTMLInputElement>('.img-select-checkbox:checked')
-            if (checkboxes.length === 0) {
-              alert('Please select at least one picture to download.')
-              return
-            }
-            checkboxes.forEach((cb, idx) => {
-              const imgUrl = cb.getAttribute('data-img-url')
-              if (imgUrl) {
-                setTimeout(() => {
-                  const a = document.createElement('a')
-                  a.href = imgUrl
-                  a.target = '_blank'
-                  a.download = `tikclip-picture-${idx + 1}.jpg`
-                  document.body.appendChild(a)
-                  a.click()
-                  a.remove()
-                }, idx * 300)
-              }
+          // Download All Images
+          document.querySelector('#download-all-zip')?.addEventListener('click', () => {
+            imagesList.forEach((imgUrl, idx) => {
+              setTimeout(() => {
+                const a = document.createElement('a')
+                a.href = imgUrl
+                a.target = '_blank'
+                a.download = `tikclip-slide-${idx + 1}.jpg`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+              }, idx * 300)
             })
           })
 
@@ -211,21 +239,21 @@ form.addEventListener('submit', async (event) => {
           return
         }
 
-        // 2. VIDEO PREVIEW PLAYER
+        // VIDEO CARD LAYOUT
         if (data.play) {
-          message.textContent = 'Preview Ready! Check the video below before downloading.'
+          message.textContent = 'Preview Ready!'
           message.className = 'form-message success'
 
-          const videoUrl = data.play
-          const coverUrl = data.cover || ''
-          const title = data.title || 'TikTok Video'
-
           mediaPreview.innerHTML = `
-            <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; text-align: center;">
-              <p style="font-weight: 600; margin-top: 0; margin-bottom: 10px; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${title}</p>
-              <video src="${videoUrl}" poster="${coverUrl}" controls style="width: 100%; max-width: 320px; max-height: 400px; border-radius: 8px; background: #000; margin-bottom: 15px;"></video>
-              <div>
-                <a href="${videoUrl}" target="_blank" download="tikclip-video.mp4" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Download MP4 Video</a>
+            <div style="background: #5b5182; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #fff; text-align: left; padding: 20px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <img src="${authorAvatar}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff;" />
+                <span style="font-size: 18px; font-weight: bold;">${authorName}</span>
+              </div>
+              <video src="${data.play}" poster="${data.cover || ''}" controls style="width: 100%; max-height: 380px; border-radius: 8px; background: #000; margin-bottom: 15px;"></video>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="${data.play}" target="_blank" download="tikclip-video.mp4" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold;">Download Video (MP4)</a>
+                ${data.music ? `<a href="${data.music}" target="_blank" download="tikclip-audio.mp3" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold;">Download MP3</a>` : ''}
               </div>
             </div>
           `
@@ -240,7 +268,7 @@ form.addEventListener('submit', async (event) => {
     console.warn("Direct preview failed, using fallback backend...", err)
   }
 
-  // 3. FALLBACK TO BACKEND API
+  // FALLBACK BACKEND API
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
@@ -257,9 +285,9 @@ form.addEventListener('submit', async (event) => {
     if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
     
     mediaPreview.innerHTML = `
-      <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; text-align: center;">
-        <p style="font-weight: 600; margin-top: 0; margin-bottom: 10px;">Media Ready!</p>
-        <a href="${data.downloadUrl}" target="_blank" download="${data.filename || 'tikclip-video.mp4'}" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Download Media</a>
+      <div style="background: #5b5182; border-radius: 12px; padding: 20px; text-align: center; color: #fff;">
+        <p style="font-weight: 600; margin-top: 0; margin-bottom: 15px; font-size: 18px;">Media Ready!</p>
+        <a href="${data.downloadUrl}" target="_blank" download="${data.filename || 'tikclip-video.mp4'}" style="background: #38adf2; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Download Media</a>
       </div>
     `
     
