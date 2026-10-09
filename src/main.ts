@@ -25,6 +25,7 @@ app.innerHTML = `
         <div class="input-shell">
           <span class="link-icon">↗</span>
           <input id="video-url" name="url" type="url" placeholder="Paste a TikTok link here" autocomplete="off" required>
+          <button class="clear-button" id="clear-button" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-right: 6px; transition: all 0.2s ease;">Clear</button>
           <button class="paste-button" id="paste-button" type="button">Paste</button>
         </div>
         <div class="download-options">
@@ -61,6 +62,7 @@ const form = document.querySelector<HTMLFormElement>('#download-form')!
 const input = document.querySelector<HTMLInputElement>('#video-url')!
 const button = document.querySelector<HTMLButtonElement>('#download-button')!
 const pasteButton = document.querySelector<HTMLButtonElement>('#paste-button')!
+const clearButton = document.querySelector<HTMLButtonElement>('#clear-button')! // Clear Button Select kiya
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
@@ -84,6 +86,15 @@ themeButtons.forEach((themeButton) => {
     const theme = themeButton.dataset.themeOption
     if (theme === 'light' || theme === 'dark') applyTheme(theme)
   })
+})
+
+// INSTANT CLEAR BUTTON LOGIC
+clearButton.addEventListener('click', () => {
+  input.value = ''
+  message.textContent = ''
+  message.className = 'form-message'
+  imageResults.innerHTML = ''
+  input.focus()
 })
 
 pasteButton.addEventListener('click', async () => {
@@ -110,7 +121,6 @@ form.addEventListener('submit', async (event) => {
     return
   }
 
-  // URL CLEANING: Link mein se extra "?" tracking data nikalna taake API confuse na ho
   const url = rawUrl.split('?')[0];
 
   button.disabled = true
@@ -121,15 +131,12 @@ form.addEventListener('submit', async (event) => {
 
   if (!isAudio) { 
     try {
-      console.log("Checking for pictures via TikWM API for URL:", url);
       const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
       const responseText = await tikwmResponse.text();
       
       if (responseText) {
         const tikwmData = JSON.parse(responseText);
-        console.log("TikWM API Full Response:", tikwmData); // Debug log
         
-        // Check if pictures exist in the response
         if (tikwmData?.code === 0 && tikwmData?.data?.images && tikwmData.data.images.length > 0) {
           message.textContent = 'Pictures found! Ready to download.';
           message.className = 'form-message success';
@@ -152,8 +159,6 @@ form.addEventListener('submit', async (event) => {
           button.disabled = false;
           button.querySelector('span')!.textContent = 'Download video';
           return; 
-        } else {
-          console.log("No images found in response, falling back to video API.");
         }
       }
     } catch (picError) {
@@ -161,14 +166,13 @@ form.addEventListener('submit', async (event) => {
     }
   }
 
-  // AGAR PICTURES NAHI HAIN TOH ORIGINAL VIDEO API
   button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
   
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ url: rawUrl, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) // Original link for backend
+      body: JSON.stringify({ url: rawUrl, quality: quality.value, mode: isAudio ? 'audio' : 'video' })
     })
     
     const backendResponseText = await response.text();
