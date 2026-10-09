@@ -115,36 +115,15 @@ themeButtons.forEach((themeButton) => {
   })
 })
 
-// HELPER FUNCTION TO FORCE BLOB DOWNLOAD
-async function downloadImageFile(imageUrl: string, filename: string, btnElement?: HTMLButtonElement) {
-  const originalText = btnElement ? btnElement.textContent : ''
-  if (btnElement) {
-    btnElement.disabled = true
-    btnElement.textContent = 'Saving...'
-  }
-
-  try {
-    // Proxy ke zariye fetch kar rahe hain taake CORS error na aaye
-    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(imageUrl)}`)
-    const blob = await res.blob()
-    const blobUrl = URL.createObjectURL(blob)
-
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(blobUrl)
-  } catch (err) {
-    console.warn("Direct blob download failed, fallback to new tab", err)
-    window.open(imageUrl, '_blank')
-  } finally {
-    if (btnElement) {
-      btnElement.disabled = false
-      btnElement.textContent = originalText
-    }
-  }
+// HELPER FUNCTION TO TRIGGER DIRECT PROXIED DOWNLOAD
+function triggerProxiedDownload(imageUrl: string, filename: string) {
+  const proxyDownloadUrl = `/api/proxy?url=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(filename)}`
+  const a = document.createElement('a')
+  a.href = proxyDownloadUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 // CLEAR BUTTONS
@@ -239,7 +218,7 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER (FORCED DIRECT DOWNLOAD)
+// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER
 slideForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = slideInput.value.trim()
@@ -294,23 +273,16 @@ slideForm.addEventListener('submit', async (event) => {
         btn.addEventListener('click', () => {
           const imgUrl = btn.getAttribute('data-img-url')!
           const filename = btn.getAttribute('data-filename')!
-          downloadImageFile(imgUrl, filename, btn)
+          triggerProxiedDownload(imgUrl, filename)
         })
       })
 
       // Download All Button Listener
-      document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async (e) => {
-        const allBtn = e.currentTarget as HTMLButtonElement
-        allBtn.disabled = true
-        allBtn.textContent = 'Downloading All...'
-
+      document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async () => {
         for (let idx = 0; idx < imagesList.length; idx++) {
-          await downloadImageFile(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
-          await new Promise((r) => setTimeout(r, 400))
+          triggerProxiedDownload(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
+          await new Promise((r) => setTimeout(r, 350))
         }
-
-        allBtn.disabled = false
-        allBtn.textContent = `Download All (${imagesList.length})`
       })
 
     } else {
