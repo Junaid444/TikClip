@@ -116,50 +116,66 @@ form.addEventListener('submit', async (event) => {
   message.textContent = ''
   imageResults.innerHTML = '' // Nayi request par purani pictures clear karna
 
-  try {
-    // SAB SE PEHLE CHECK KAREIN KE KYA YEH PICTURE SLIDESHOW HAI
-    if (!isAudio) { // Agar user ne audio only select nahi kiya
+  // 1. SIRF PICTURE CHECK KAREIN (Safe block mein taake error par crash na ho)
+  if (!isAudio) { 
+    try {
       const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
-      const tikwmData = await tikwmResponse.json() as { code?: number; data?: { images?: string[] } };
-
-      if (tikwmData.code === 0 && tikwmData.data && tikwmData.data.images && tikwmData.data.images.length > 0) {
-        // Pictures mil gayin! Ab unhein UI mein show karein
-        message.textContent = 'Pictures found! Ready to download.';
-        message.className = 'form-message success';
+      // Text ke zariye parse karein taake agar empty response ho toh error handle ho sake
+      const responseText = await tikwmResponse.text();
+      
+      if (responseText) {
+        const tikwmData = JSON.parse(responseText);
         
-        let imagesHtml = `
-          <div style="display: flex; gap: 15px; overflow-x: auto; padding: 15px 0; max-width: 100%; scrollbar-width: thin;">
-        `;
-        
-        tikwmData.data.images.forEach((imgUrl: string, index: number) => {
-          imagesHtml += `
-            <div style="min-width: 180px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px;">
-              <img src="${imgUrl}" alt="TikTok Picture ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-              <a href="${imgUrl}" target="_blank" download="tikclip-image-${index + 1}.jpg" style="background-color: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Download</a>
-            </div>
+        if (tikwmData?.code === 0 && tikwmData?.data?.images && tikwmData.data.images.length > 0) {
+          // Pictures mil gayin! Ab unhein UI mein show karein
+          message.textContent = 'Pictures found! Ready to download.';
+          message.className = 'form-message success';
+          
+          let imagesHtml = `
+            <div style="display: flex; gap: 15px; overflow-x: auto; padding: 15px 0; max-width: 100%; scrollbar-width: thin;">
           `;
-        });
-        imagesHtml += '</div>';
-        
-        imageResults.innerHTML = imagesHtml;
-        
-        // Button ko wapis normal state mein le aayen aur function yahin khatam kar dein (Backend API par na bhejein)
-        button.disabled = false;
-        button.querySelector('span')!.textContent = 'Download video';
-        return; 
+          
+          tikwmData.data.images.forEach((imgUrl: string, index: number) => {
+            imagesHtml += `
+              <div style="min-width: 180px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px;">
+                <img src="${imgUrl}" alt="TikTok Picture ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+                <a href="${imgUrl}" target="_blank" download="tikclip-image-${index + 1}.jpg" style="background-color: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Download</a>
+              </div>
+            `;
+          });
+          imagesHtml += '</div>';
+          
+          imageResults.innerHTML = imagesHtml;
+          
+          // Button ko wapis normal state mein le aayen aur function yahin khatam kar dein
+          button.disabled = false;
+          button.querySelector('span')!.textContent = 'Download video';
+          return; 
+        }
       }
+    } catch (picError) {
+      console.warn("Picture API did not return valid pictures, proceeding to video download...");
+      // Agar yahan error aaye toh hum chup chaap video download ki taraf nikal jayenge
     }
+  }
 
-    // AGAR PICTURES NAHI HAIN (YA AUDIO ONLY HAI), TOH APNA PURANA VIDEO API CALL CHALAYEIN
-    button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
-    
+  // 2. AGAR PICTURES NAHI HAIN (YA AUDIO ONLY HAI), TOH ORIGINAL VIDEO/AUDIO CODE CHALAYEIN
+  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
+  
+  try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ url, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) 
     })
     
-    const data = await response.json() as { error?: string; downloadUrl?: string; filename?: string }
+    // Yahan backend API ka safely check kar rahe hain
+    const backendResponseText = await response.text();
+    if (!backendResponseText) {
+       throw new Error("Our server returned an empty response. Please try again.");
+    }
+    
+    const data = JSON.parse(backendResponseText) as { error?: string; downloadUrl?: string; filename?: string };
     
     if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
     
