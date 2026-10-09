@@ -17,16 +17,16 @@ app.innerHTML = `
   </header>
   <main>
     <section class="hero">
-      <div class="eyebrow"><span class="eyebrow-line"></span> TikTok video tool</div>
+      <div class="eyebrow"><span class="eyebrow-line"></span> TikTok video & photo tool</div>
       <h1>Created by<br><em>Junaid Rafi Shah</em></h1>
-      <p class="lede">Save TikTok videos as crisp MP4s, without the watermark. Paste a link and let TikClip handle the rest.</p>
+      <p class="lede">Save TikTok videos and photo slides without the watermark. Just paste a link and let TikClip handle the rest.</p>
 
-      <!-- 1. MAIN VIDEO DOWNLOAD FORM -->
+      <!-- 1. MERGED SMART DOWNLOAD FORM -->
       <form class="download-form" id="download-form">
-        <label for="video-url" class="sr-only">TikTok video link</label>
+        <label for="video-url" class="sr-only">TikTok link</label>
         <div class="input-shell">
           <span class="link-icon">↗</span>
-          <input id="video-url" name="url" type="url" placeholder="Paste a TikTok video link here" autocomplete="off" required>
+          <input id="video-url" name="url" type="url" placeholder="Paste a TikTok link here (Video or Photo)" autocomplete="off" required>
           <button class="clear-button" id="clear-button" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-right: 6px; transition: all 0.2s ease;">Clear</button>
           <button class="paste-button" id="paste-button" type="button">Paste</button>
         </div>
@@ -40,42 +40,28 @@ app.innerHTML = `
           </label>
           <label class="audio-toggle"><input id="audio-only" name="audioOnly" type="checkbox"><span class="toggle-track"></span><span>Audio only</span></label>
         </div>
-        <button class="download-button" id="download-button" type="submit"><span>Download Video</span><span class="button-arrow">↗</span></button>
+        <button class="download-button" id="download-button" type="submit"><span>Download Media</span><span class="button-arrow">↗</span></button>
       </form>
 
-      <!-- 2. DEDICATED TIKTOK SLIDES / PHOTO DOWNLOADER SECTION -->
-      <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; text-align: left;">
-        <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 16px; font-weight: bold; color: var(--text-color, #1e293b);">🖼️ TikTok Photo / Slide Downloader</h3>
-        <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; opacity: 0.8;">Paste a TikTok slideshow link below to view all full-res photos and download your favorite slides.</p>
-        
-        <form id="slide-download-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <div style="flex: 1 1 250px; display: flex; align-items: center; background: var(--input-bg, #fff); border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 4px 8px;">
-            <input id="slide-url" type="url" placeholder="Paste TikTok photo slide link here..." autocomplete="off" required style="width: 100%; border: none; background: transparent; padding: 8px; font-size: 14px; outline: none; color: inherit;">
-            <button id="slide-clear-btn" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 4px;">Clear</button>
-            <button id="slide-paste-btn" type="button" style="background: #a3e635; color: #000; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Paste</button>
-          </div>
-          <button id="slide-submit-btn" type="submit" style="background: #38adf2; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">Fetch Slides</button>
-        </form>
-        <p id="slide-message" style="margin-top: 10px; margin-bottom: 0; font-size: 13px; font-weight: 600;"></p>
-        <div id="slide-results" style="margin-top: 15px; width: 100%; overflow: hidden;"></div>
-      </div>
-
       <p class="form-message" id="form-message" role="status"></p>
-      <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch this video</p>
+      
+      <!-- SLIDES RESULT CONTAINER -->
+      <div id="slide-results" style="margin-top: 15px; width: 100%; overflow: hidden;"></div>
+
+      <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch media</p>
     </section>
     <section class="how-it-works" aria-labelledby="how-title">
       <div class="section-heading"><span class="section-kicker">01 / 03</span><h2 id="how-title">Three seconds<br>to your camera roll.</h2></div>
       <div class="steps">
-        <article class="step"><span class="step-number">01</span><div><h3>Copy your link</h3><p>Use the share button on any TikTok video and copy its link.</p></div></article>
-        <article class="step"><span class="step-number">02</span><div><h3>Drop it here</h3><p>Paste the link above. We will find the original video file.</p></div></article>
-        <article class="step"><span class="step-number">03</span><div><h3>Keep the moment</h3><p>Download a clean MP4 and use it wherever you like.</p></div></article>
+        <article class="step"><span class="step-number">01</span><div><h3>Copy your link</h3><p>Use the share button on any TikTok video or photo slide and copy its link.</p></div></article>
+        <article class="step"><span class="step-number">02</span><div><h3>Drop it here</h3><p>Paste the link above. We will detect whether it's a video or a photo post automatically.</p></div></article>
+        <article class="step"><span class="step-number">03</span><div><h3>Keep the moment</h3><p>Download your media in high quality and use it wherever you like.</p></div></article>
       </div>
     </section>
   </main>
-  <footer><span>tikclip / made for your saved folder</span><span>MP4 · HD · no watermark</span></footer>
+  <footer><span>tikclip / made for your saved folder</span><span>MP4 · HD · Photos · no watermark</span></footer>
 `
 
-// Form elements
 const form = document.querySelector<HTMLFormElement>('#download-form')!
 const input = document.querySelector<HTMLInputElement>('#video-url')!
 const button = document.querySelector<HTMLButtonElement>('#download-button')!
@@ -84,14 +70,6 @@ const clearButton = document.querySelector<HTMLButtonElement>('#clear-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
-
-// Slide elements
-const slideForm = document.querySelector<HTMLFormElement>('#slide-download-form')!
-const slideInput = document.querySelector<HTMLInputElement>('#slide-url')!
-const slidePasteBtn = document.querySelector<HTMLButtonElement>('#slide-paste-btn')!
-const slideClearBtn = document.querySelector<HTMLButtonElement>('#slide-clear-btn')!
-const slideSubmitBtn = document.querySelector<HTMLButtonElement>('#slide-submit-btn')!
-const slideMessage = document.querySelector<HTMLParagraphElement>('#slide-message')!
 const slideResults = document.querySelector<HTMLDivElement>('#slide-results')!
 
 const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
@@ -115,7 +93,7 @@ themeButtons.forEach((themeButton) => {
   })
 })
 
-// HELPER FUNCTION TO TRIGGER DIRECT PROXIED DOWNLOAD
+// HELPER FUNCTION: TO PREVENT CORRUPT IMAGE DOWNLOADS (Proxy method)
 function triggerProxiedDownload(imageUrl: string, filename: string) {
   const proxyDownloadUrl = `/api/proxy?url=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(filename)}`
   const a = document.createElement('a')
@@ -126,22 +104,15 @@ function triggerProxiedDownload(imageUrl: string, filename: string) {
   a.remove()
 }
 
-// CLEAR BUTTONS
+// BUTTON HANDLERS
 clearButton.addEventListener('click', () => {
   input.value = ''
   message.textContent = ''
   message.className = 'form-message'
+  slideResults.innerHTML = ''
   input.focus()
 })
 
-slideClearBtn.addEventListener('click', () => {
-  slideInput.value = ''
-  slideMessage.textContent = ''
-  slideResults.innerHTML = ''
-  slideInput.focus()
-})
-
-// PASTE BUTTONS
 pasteButton.addEventListener('click', async () => {
   try {
     input.value = await navigator.clipboard.readText()
@@ -155,20 +126,7 @@ pasteButton.addEventListener('click', async () => {
   }
 })
 
-slidePasteBtn.addEventListener('click', async () => {
-  try {
-    slideInput.value = await navigator.clipboard.readText()
-    slideInput.focus()
-    slideMessage.textContent = slideInput.value ? 'Photo link pasted.' : 'Your clipboard is empty.'
-    slideMessage.style.color = slideInput.value ? '#16a34a' : '#dc2626'
-  } catch {
-    slideInput.focus()
-    slideMessage.textContent = 'Paste with Ctrl + V.'
-    slideMessage.style.color = '#dc2626'
-  }
-})
-
-// 1. VIDEO DIRECT DOWNLOAD FORM HANDLER
+// SMART FORM SUBMISSION (Auto Detects Slides or Video)
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = input.value.trim()
@@ -182,10 +140,84 @@ form.addEventListener('submit', async (event) => {
 
   button.disabled = true
   const isAudio = audioOnly.checked
-  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Downloading video...'
+  button.querySelector('span')!.textContent = 'Analyzing link...'
   message.textContent = ''
+  slideResults.innerHTML = ''
 
   try {
+    let isSlideshow = false
+    let imagesList: string[] = []
+
+    // STEP 1: CHECK IF IT'S A PHOTO SLIDESHOW
+    // Agar user ne 'Audio Only' check nahi kiya, toh hum check karte hain ke yeh slides toh nahi.
+    if (!isAudio) {
+      try {
+        const slideRes = await fetch(`/api/slides?url=${encodeURIComponent(rawUrl)}`)
+        if (slideRes.ok) {
+          const slideData = await slideRes.json()
+          if (slideData.images && slideData.images.length > 0) {
+            isSlideshow = true
+            imagesList = slideData.images
+          }
+        }
+      } catch (e) {
+        console.warn("Slide check skipped or failed, moving to video download.")
+      }
+    }
+
+    // STEP 2: IF SLIDES FOUND, RENDER SLIDES UI
+    if (isSlideshow && imagesList.length > 0) {
+      message.textContent = `Found ${imagesList.length} slides! Select individual slides to download below.`
+      message.className = 'form-message success'
+
+      let slidesHtml = `
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 13px; font-weight: bold; opacity: 0.8;">Total: ${imagesList.length} Photos</span>
+          <button id="download-all-slides-btn" type="button" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download All (${imagesList.length})</button>
+        </div>
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 10px 2px; max-width: 100%; box-sizing: border-box; scrollbar-width: thin;">
+      `
+
+      imagesList.forEach((imgUrl, idx) => {
+        slidesHtml += `
+          <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: var(--bg-color, #fff); padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-box;">
+            <div style="width: 100%; height: 220px; overflow: hidden; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
+              <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+            <div>
+              <span style="display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.7;">Slide ${idx + 1}</span>
+              <button class="single-slide-download-btn" data-img-url="${imgUrl}" data-filename="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download Photo</button>
+            </div>
+          </div>
+        `
+      })
+      slidesHtml += `</div>`
+      slideResults.innerHTML = slidesHtml
+
+      // Attach Listeners for Slides
+      document.querySelectorAll<HTMLButtonElement>('.single-slide-download-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const imgUrl = btn.getAttribute('data-img-url')!
+          const filename = btn.getAttribute('data-filename')!
+          triggerProxiedDownload(imgUrl, filename)
+        })
+      })
+
+      document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async () => {
+        for (let idx = 0; idx < imagesList.length; idx++) {
+          triggerProxiedDownload(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
+          await new Promise((r) => setTimeout(r, 400)) // Throttle to prevent browser crash
+        }
+      })
+
+      button.disabled = false
+      button.querySelector('span')!.textContent = 'Download Media'
+      return // Process finished for slides!
+    }
+
+    // STEP 3: IF NOT SLIDES, PROCESS AS VIDEO/AUDIO (Fallback)
+    button.querySelector('span')!.textContent = isAudio ? 'Downloading audio...' : 'Downloading video...'
+    
     const response = await fetch('/api/download', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
@@ -209,91 +241,12 @@ form.addEventListener('submit', async (event) => {
 
     message.textContent = isAudio ? 'Your audio download is on its way.' : 'Your video download is on its way.'
     message.className = 'form-message success'
+
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Something went wrong. Try another link.'
     message.className = 'form-message error'
   } finally {
     button.disabled = false
-    button.querySelector('span')!.textContent = 'Download Video'
-  }
-})
-
-// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER
-slideForm.addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const rawUrl = slideInput.value.trim()
-
-  if (!rawUrl || !/(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)/i.test(rawUrl)) {
-    slideMessage.textContent = 'Please enter a valid TikTok photo/slide link.'
-    slideMessage.style.color = '#dc2626'
-    return
-  }
-
-  slideSubmitBtn.disabled = true
-  slideSubmitBtn.textContent = 'Fetching Slides...'
-  slideMessage.textContent = ''
-  slideResults.innerHTML = ''
-
-  try {
-    const res = await fetch(`/api/slides?url=${encodeURIComponent(rawUrl)}`)
-    const data = await res.json()
-
-    if (res.ok && data.images && data.images.length > 0) {
-      const imagesList = data.images as string[]
-
-      slideMessage.textContent = `Found ${imagesList.length} slides! Select individual slides to download below.`
-      slideMessage.style.color = '#16a34a'
-
-      let slidesHtml = `
-        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <span style="font-size: 13px; font-weight: bold; opacity: 0.8;">Total: ${imagesList.length} Photos</span>
-          <button id="download-all-slides-btn" type="button" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download All (${imagesList.length})</button>
-        </div>
-        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 10px 2px; max-width: 100%; box-sizing: border-box; scrollbar-width: thin;">
-      `
-
-      imagesList.forEach((imgUrl, idx) => {
-        slidesHtml += `
-          <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-box;">
-            <div style="width: 100%; height: 220px; overflow: hidden; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
-              <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
-            </div>
-            <div>
-              <span style="display: block; font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 4px;">Slide ${idx + 1}</span>
-              <button class="single-slide-download-btn" data-img-url="${imgUrl}" data-filename="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download Photo</button>
-            </div>
-          </div>
-        `
-      })
-      slidesHtml += `</div>`
-      slideResults.innerHTML = slidesHtml
-
-      // Individual Download Button Listeners
-      document.querySelectorAll<HTMLButtonElement>('.single-slide-download-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const imgUrl = btn.getAttribute('data-img-url')!
-          const filename = btn.getAttribute('data-filename')!
-          triggerProxiedDownload(imgUrl, filename)
-        })
-      })
-
-      // Download All Button Listener
-      document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async () => {
-        for (let idx = 0; idx < imagesList.length; idx++) {
-          triggerProxiedDownload(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
-          await new Promise((r) => setTimeout(r, 350))
-        }
-      })
-
-    } else {
-      slideMessage.textContent = data.error || 'Could not extract photo slides from this link.'
-      slideMessage.style.color = '#dc2626'
-    }
-  } catch (err) {
-    slideMessage.textContent = 'Failed to connect to server. Please try again.'
-    slideMessage.style.color = '#dc2626'
-  } finally {
-    slideSubmitBtn.disabled = false
-    slideSubmitBtn.textContent = 'Fetch Slides'
+    button.querySelector('span')!.textContent = 'Download Media'
   }
 })
