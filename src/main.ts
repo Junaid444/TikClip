@@ -38,11 +38,12 @@ app.innerHTML = `
           </label>
           <label class="audio-toggle"><input id="audio-only" name="audioOnly" type="checkbox"><span class="toggle-track"></span><span>Audio only</span></label>
         </div>
-        <button class="download-button" id="download-button" type="submit"><span>Download video</span><span class="button-arrow">↗</span></button>
+        <button class="download-button" id="download-button" type="submit"><span>Fetch & Preview Media</span><span class="button-arrow">↗</span></button>
       </form>
       <p class="form-message" id="form-message" role="status"></p>
       
-      <div id="image-results" style="margin-top: 20px; width: 100%;"></div>
+      <!-- MEDIA PREVIEW CONTAINER -->
+      <div id="media-preview" style="margin-top: 25px; width: 100%;"></div>
 
       <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch this video</p>
     </section>
@@ -62,11 +63,11 @@ const form = document.querySelector<HTMLFormElement>('#download-form')!
 const input = document.querySelector<HTMLInputElement>('#video-url')!
 const button = document.querySelector<HTMLButtonElement>('#download-button')!
 const pasteButton = document.querySelector<HTMLButtonElement>('#paste-button')!
-const clearButton = document.querySelector<HTMLButtonElement>('#clear-button')! // Clear Button Select kiya
+const clearButton = document.querySelector<HTMLButtonElement>('#clear-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
-const imageResults = document.querySelector<HTMLDivElement>('#image-results')!
+const mediaPreview = document.querySelector<HTMLDivElement>('#media-preview')!
 const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
 type Theme = 'light' | 'dark'
 
@@ -88,12 +89,11 @@ themeButtons.forEach((themeButton) => {
   })
 })
 
-// INSTANT CLEAR BUTTON LOGIC
 clearButton.addEventListener('click', () => {
   input.value = ''
   message.textContent = ''
   message.className = 'form-message'
-  imageResults.innerHTML = ''
+  mediaPreview.innerHTML = ''
   input.focus()
 })
 
@@ -101,7 +101,7 @@ pasteButton.addEventListener('click', async () => {
   try {
     input.value = await navigator.clipboard.readText()
     input.focus()
-    message.textContent = input.value ? 'Link pasted. Ready when you are.' : 'Your clipboard is empty.'
+    message.textContent = input.value ? 'Link pasted. Ready to fetch preview.' : 'Your clipboard is empty.'
     message.className = `form-message ${input.value ? 'success' : 'error'}`
   } catch {
     input.focus()
@@ -121,83 +121,155 @@ form.addEventListener('submit', async (event) => {
     return
   }
 
-  const url = rawUrl.split('?')[0];
+  const url = rawUrl.split('?')[0]
 
   button.disabled = true
   const isAudio = audioOnly.checked
-  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding media...'
+  button.querySelector('span')!.textContent = 'Fetching preview...'
   message.textContent = ''
-  imageResults.innerHTML = '' 
+  mediaPreview.innerHTML = '' 
 
-  if (!isAudio) { 
-    try {
-      const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
-      const responseText = await tikwmResponse.text();
-      
-      if (responseText) {
-        const tikwmData = JSON.parse(responseText);
-        
-        if (tikwmData?.code === 0 && tikwmData?.data?.images && tikwmData.data.images.length > 0) {
-          message.textContent = 'Pictures found! Ready to download.';
-          message.className = 'form-message success';
-          
-          let imagesHtml = `
-            <div style="display: flex; gap: 15px; overflow-x: auto; padding: 15px 0; max-width: 100%; scrollbar-width: thin;">
-          `;
-          
-          tikwmData.data.images.forEach((imgUrl: string, index: number) => {
-            imagesHtml += `
-              <div style="min-width: 180px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px;">
-                <img src="${imgUrl}" alt="TikTok Picture ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-                <a href="${imgUrl}" target="_blank" download="tikclip-image-${index + 1}.jpg" style="background-color: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Download</a>
+  try {
+    const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`)
+    const responseText = await tikwmResponse.text()
+
+    if (responseText) {
+      const tikwmData = JSON.parse(responseText)
+
+      if (tikwmData?.code === 0 && tikwmData?.data) {
+        const data = tikwmData.data
+
+        // 1. SLIDESHOW PICTURES PREVIEW & SELECTIVE DOWNLOAD
+        if (!isAudio && data.images && data.images.length > 0) {
+          message.textContent = 'Preview Ready! Select the pictures you want to download.'
+          message.className = 'form-message success'
+
+          let previewHtml = `
+            <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin:0; font-size: 16px;">Pictures Found (${data.images.length})</h3>
+                <div>
+                  <button id="select-all-btn" type="button" style="background: #e2e8f0; color: #1e293b; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 8px;">Select All</button>
+                  <button id="download-selected-btn" type="button" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">Download Selected</button>
+                </div>
               </div>
-            `;
-          });
-          imagesHtml += '</div>';
-          
-          imageResults.innerHTML = imagesHtml;
-          button.disabled = false;
-          button.querySelector('span')!.textContent = 'Download video';
-          return; 
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; max-height: 450px; overflow-y: auto; padding-right: 5px;">
+          `
+
+          data.images.forEach((imgUrl: string, index: number) => {
+            previewHtml += `
+              <div style="position: relative; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #000; display: flex; flex-direction: column;">
+                <label style="position: absolute; top: 8px; left: 8px; z-index: 10; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                  <input type="checkbox" class="img-select-checkbox" data-img-url="${imgUrl}" checked style="accent-color: #a3e635; cursor: pointer;" />
+                </label>
+                <img src="${imgUrl}" alt="Slide ${index + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover;" />
+                <a href="${imgUrl}" target="_blank" download="tikclip-img-${index + 1}.jpg" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); text-align: center; padding: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">Download This</a>
+              </div>
+            `
+          })
+
+          previewHtml += `</div></div>`
+          mediaPreview.innerHTML = previewHtml
+
+          // Select All Button
+          const selectAllBtn = document.querySelector('#select-all-btn')
+          const downloadSelectedBtn = document.querySelector('#download-selected-btn')
+
+          let allSelected = true
+          selectAllBtn?.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll<HTMLInputElement>('.img-select-checkbox')
+            allSelected = !allSelected
+            checkboxes.forEach((cb) => (cb.checked = allSelected))
+            selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All'
+          })
+
+          // Download Selected Button
+          downloadSelectedBtn?.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll<HTMLInputElement>('.img-select-checkbox:checked')
+            if (checkboxes.length === 0) {
+              alert('Please select at least one picture to download.')
+              return
+            }
+            checkboxes.forEach((cb, idx) => {
+              const imgUrl = cb.getAttribute('data-img-url')
+              if (imgUrl) {
+                setTimeout(() => {
+                  const a = document.createElement('a')
+                  a.href = imgUrl
+                  a.target = '_blank'
+                  a.download = `tikclip-picture-${idx + 1}.jpg`
+                  document.body.appendChild(a)
+                  a.click()
+                  a.remove()
+                }, idx * 300)
+              }
+            })
+          })
+
+          button.disabled = false
+          button.querySelector('span')!.textContent = 'Fetch & Preview Media'
+          return
+        }
+
+        // 2. VIDEO PREVIEW PLAYER
+        if (data.play) {
+          message.textContent = 'Preview Ready! Check the video below before downloading.'
+          message.className = 'form-message success'
+
+          const videoUrl = data.play
+          const coverUrl = data.cover || ''
+          const title = data.title || 'TikTok Video'
+
+          mediaPreview.innerHTML = `
+            <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+              <p style="font-weight: 600; margin-top: 0; margin-bottom: 10px; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${title}</p>
+              <video src="${videoUrl}" poster="${coverUrl}" controls style="width: 100%; max-width: 320px; max-height: 400px; border-radius: 8px; background: #000; margin-bottom: 15px;"></video>
+              <div>
+                <a href="${videoUrl}" target="_blank" download="tikclip-video.mp4" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Download MP4 Video</a>
+              </div>
+            </div>
+          `
+
+          button.disabled = false
+          button.querySelector('span')!.textContent = 'Fetch & Preview Media'
+          return
         }
       }
-    } catch (picError) {
-      console.warn("Picture API failed, error:", picError);
     }
+  } catch (err) {
+    console.warn("Direct preview failed, using fallback backend...", err)
   }
 
-  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Finding video...'
-  
+  // 3. FALLBACK TO BACKEND API
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ url: rawUrl, quality: quality.value, mode: isAudio ? 'audio' : 'video' })
+      body: JSON.stringify({ url: rawUrl, quality: quality.value, mode: isAudio ? 'audio' : 'video' }) 
     })
     
-    const backendResponseText = await response.text();
+    const backendResponseText = await response.text()
     if (!backendResponseText) {
-       throw new Error("Our server returned an empty response. Please try again.");
+       throw new Error("Our server returned an empty response. Please try again.")
     }
     
-    const data = JSON.parse(backendResponseText) as { error?: string; downloadUrl?: string; filename?: string };
-    
+    const data = JSON.parse(backendResponseText) as { error?: string; downloadUrl?: string; filename?: string }
     if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
     
-    const download = document.createElement('a')
-    download.href = data.downloadUrl
-    download.download = data.filename || 'tikclip-video.mp4'
-    document.body.appendChild(download)
-    download.click()
-    download.remove()
+    mediaPreview.innerHTML = `
+      <div style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+        <p style="font-weight: 600; margin-top: 0; margin-bottom: 10px;">Media Ready!</p>
+        <a href="${data.downloadUrl}" target="_blank" download="${data.filename || 'tikclip-video.mp4'}" style="background: var(--button-bg, #a3e635); color: var(--button-text, #000); padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Download Media</a>
+      </div>
+    `
     
-    message.textContent = isAudio ? 'Your audio download is on its way.' : 'Your video download is on its way.'
+    message.textContent = 'Media fetched successfully!'
     message.className = 'form-message success'
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Something went wrong. Try another link.'
     message.className = 'form-message error'
   } finally {
     button.disabled = false
-    button.querySelector('span')!.textContent = 'Download video'
+    button.querySelector('span')!.textContent = 'Fetch & Preview Media'
   }
 })
