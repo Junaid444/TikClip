@@ -57,7 +57,7 @@ app.innerHTML = `
           <button id="slide-submit-btn" type="submit" style="background: #38adf2; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">Fetch Slides</button>
         </form>
         <p id="slide-message" style="margin-top: 10px; margin-bottom: 0; font-size: 13px; font-weight: 600;"></p>
-        <div id="slide-results" style="margin-top: 15px;"></div>
+        <div id="slide-results" style="margin-top: 15px; width: 100%; overflow: hidden;"></div>
       </div>
 
       <p class="form-message" id="form-message" role="status"></p>
@@ -207,7 +207,7 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER
+// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER (Fixed CSS Dimensions)
 slideForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = slideInput.value.trim()
@@ -234,17 +234,19 @@ slideForm.addEventListener('submit', async (event) => {
       slideMessage.style.color = '#16a34a'
 
       let slidesHtml = `
-        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <span style="font-size: 13px; font-weight: bold; opacity: 0.8;">Total: ${imagesList.length} Photos</span>
           <button id="download-all-slides-btn" type="button" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download All (${imagesList.length})</button>
         </div>
-        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; scrollbar-width: thin;">
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 10px 2px; max-width: 100%; box-sizing: border-box; scrollbar-width: thin;">
       `
 
       imagesList.forEach((imgUrl, idx) => {
         slidesHtml += `
-          <div style="min-width: 150px; flex: 0 0 auto; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
-            <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 6px;" />
+          <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-radius;">
+            <div style="width: 100%; height: 220px; overflow: hidden; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
+              <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
             <div>
               <span style="display: block; font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 4px;">Slide ${idx + 1}</span>
               <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: bold;">Download Photo</a>
