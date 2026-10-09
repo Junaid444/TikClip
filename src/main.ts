@@ -115,6 +115,38 @@ themeButtons.forEach((themeButton) => {
   })
 })
 
+// HELPER FUNCTION TO FORCE BLOB DOWNLOAD
+async function downloadImageFile(imageUrl: string, filename: string, btnElement?: HTMLButtonElement) {
+  const originalText = btnElement ? btnElement.textContent : ''
+  if (btnElement) {
+    btnElement.disabled = true
+    btnElement.textContent = 'Saving...'
+  }
+
+  try {
+    // Proxy ke zariye fetch kar rahe hain taake CORS error na aaye
+    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(imageUrl)}`)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(blobUrl)
+  } catch (err) {
+    console.warn("Direct blob download failed, fallback to new tab", err)
+    window.open(imageUrl, '_blank')
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false
+      btnElement.textContent = originalText
+    }
+  }
+}
+
 // CLEAR BUTTONS
 clearButton.addEventListener('click', () => {
   input.value = ''
@@ -207,7 +239,7 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
-// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER (Fixed CSS Dimensions)
+// 2. TIKTOK SLIDES INDIVIDUAL DOWNLOAD HANDLER (FORCED DIRECT DOWNLOAD)
 slideForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = slideInput.value.trim()
@@ -243,13 +275,13 @@ slideForm.addEventListener('submit', async (event) => {
 
       imagesList.forEach((imgUrl, idx) => {
         slidesHtml += `
-          <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-radius;">
+          <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-box;">
             <div style="width: 100%; height: 220px; overflow: hidden; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
               <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
             </div>
             <div>
               <span style="display: block; font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 4px;">Slide ${idx + 1}</span>
-              <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: bold;">Download Photo</a>
+              <button class="single-slide-download-btn" data-img-url="${imgUrl}" data-filename="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download Photo</button>
             </div>
           </div>
         `
@@ -257,19 +289,28 @@ slideForm.addEventListener('submit', async (event) => {
       slidesHtml += `</div>`
       slideResults.innerHTML = slidesHtml
 
-      // Handlers for Download All
-      document.querySelector('#download-all-slides-btn')?.addEventListener('click', () => {
-        imagesList.forEach((imgUrl, idx) => {
-          setTimeout(() => {
-            const a = document.createElement('a')
-            a.href = imgUrl
-            a.target = '_blank'
-            a.download = `tikclip-slide-${idx + 1}.jpg`
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-          }, idx * 300)
+      // Individual Download Button Listeners
+      document.querySelectorAll<HTMLButtonElement>('.single-slide-download-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const imgUrl = btn.getAttribute('data-img-url')!
+          const filename = btn.getAttribute('data-filename')!
+          downloadImageFile(imgUrl, filename, btn)
         })
+      })
+
+      // Download All Button Listener
+      document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async (e) => {
+        const allBtn = e.currentTarget as HTMLButtonElement
+        allBtn.disabled = true
+        allBtn.textContent = 'Downloading All...'
+
+        for (let idx = 0; idx < imagesList.length; idx++) {
+          await downloadImageFile(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
+          await new Promise((r) => setTimeout(r, 400))
+        }
+
+        allBtn.disabled = false
+        allBtn.textContent = `Download All (${imagesList.length})`
       })
 
     } else {
