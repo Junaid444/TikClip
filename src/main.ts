@@ -20,11 +20,13 @@ app.innerHTML = `
       <div class="eyebrow"><span class="eyebrow-line"></span> TikTok video tool</div>
       <h1>Created by<br><em>Junaid Rafi Shah</em></h1>
       <p class="lede">Save TikTok videos as crisp MP4s, without the watermark. Paste a link and let TikClip handle the rest.</p>
+
+      <!-- 1. MAIN VIDEO DOWNLOAD FORM -->
       <form class="download-form" id="download-form">
         <label for="video-url" class="sr-only">TikTok video link</label>
         <div class="input-shell">
           <span class="link-icon">↗</span>
-          <input id="video-url" name="url" type="url" placeholder="Paste a TikTok link here" autocomplete="off" required>
+          <input id="video-url" name="url" type="url" placeholder="Paste a TikTok video link here" autocomplete="off" required>
           <button class="clear-button" id="clear-button" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-right: 6px; transition: all 0.2s ease;">Clear</button>
           <button class="paste-button" id="paste-button" type="button">Paste</button>
         </div>
@@ -38,13 +40,27 @@ app.innerHTML = `
           </label>
           <label class="audio-toggle"><input id="audio-only" name="audioOnly" type="checkbox"><span class="toggle-track"></span><span>Audio only</span></label>
         </div>
-        <button class="download-button" id="download-button" type="submit"><span>Fetch & Preview Media</span><span class="button-arrow">↗</span></button>
+        <button class="download-button" id="download-button" type="submit"><span>Download Video</span><span class="button-arrow">↗</span></button>
       </form>
-      <p class="form-message" id="form-message" role="status"></p>
-      
-      <!-- MEDIA PREVIEW CONTAINER -->
-      <div id="media-preview" style="margin-top: 25px; width: 100%;"></div>
 
+      <!-- 2. DEDICATED TIKTOK SLIDES / PHOTO DOWNLOADER SECTION -->
+      <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; text-align: left;">
+        <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 16px; font-weight: bold; color: var(--text-color, #1e293b);">🖼️ TikTok Photo / Slide Downloader</h3>
+        <p style="margin-top: 0; margin-bottom: 15px; font-size: 13px; opacity: 0.8;">Paste a TikTok slideshow link below to download all full-res photos directly.</p>
+        
+        <form id="slide-download-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="flex: 1 1 250px; display: flex; align-items: center; background: var(--input-bg, #fff); border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 4px 8px;">
+            <input id="slide-url" type="url" placeholder="Paste TikTok photo slide link here..." autocomplete="off" required style="width: 100%; border: none; background: transparent; padding: 8px; font-size: 14px; outline: none; color: inherit;">
+            <button id="slide-clear-btn" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 4px;">Clear</button>
+            <button id="slide-paste-btn" type="button" style="background: #a3e635; color: #000; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Paste</button>
+          </div>
+          <button id="slide-submit-btn" type="submit" style="background: #38adf2; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s;">Download Slides</button>
+        </form>
+        <p id="slide-message" style="margin-top: 10px; margin-bottom: 0; font-size: 13px; font-weight: 600;"></p>
+        <div id="slide-results" style="margin-top: 15px;"></div>
+      </div>
+
+      <p class="form-message" id="form-message" role="status"></p>
       <p class="privacy-note"><span class="lock-icon">⌁</span> Your link is only used to fetch this video</p>
     </section>
     <section class="how-it-works" aria-labelledby="how-title">
@@ -59,6 +75,7 @@ app.innerHTML = `
   <footer><span>tikclip / made for your saved folder</span><span>MP4 · HD · no watermark</span></footer>
 `
 
+// Form elements
 const form = document.querySelector<HTMLFormElement>('#download-form')!
 const input = document.querySelector<HTMLInputElement>('#video-url')!
 const button = document.querySelector<HTMLButtonElement>('#download-button')!
@@ -67,7 +84,16 @@ const clearButton = document.querySelector<HTMLButtonElement>('#clear-button')!
 const message = document.querySelector<HTMLParagraphElement>('#form-message')!
 const quality = document.querySelector<HTMLSelectElement>('#quality')!
 const audioOnly = document.querySelector<HTMLInputElement>('#audio-only')!
-const mediaPreview = document.querySelector<HTMLDivElement>('#media-preview')!
+
+// Slide elements
+const slideForm = document.querySelector<HTMLFormElement>('#slide-download-form')!
+const slideInput = document.querySelector<HTMLInputElement>('#slide-url')!
+const slidePasteBtn = document.querySelector<HTMLButtonElement>('#slide-paste-btn')!
+const slideClearBtn = document.querySelector<HTMLButtonElement>('#slide-clear-btn')!
+const slideSubmitBtn = document.querySelector<HTMLButtonElement>('#slide-submit-btn')!
+const slideMessage = document.querySelector<HTMLParagraphElement>('#slide-message')!
+const slideResults = document.querySelector<HTMLDivElement>('#slide-results')!
+
 const themeButtons = document.querySelectorAll<HTMLButtonElement>('[data-theme-option]')
 type Theme = 'light' | 'dark'
 
@@ -89,19 +115,27 @@ themeButtons.forEach((themeButton) => {
   })
 })
 
+// CLEAR BUTTONS
 clearButton.addEventListener('click', () => {
   input.value = ''
   message.textContent = ''
   message.className = 'form-message'
-  mediaPreview.innerHTML = ''
   input.focus()
 })
 
+slideClearBtn.addEventListener('click', () => {
+  slideInput.value = ''
+  slideMessage.textContent = ''
+  slideResults.innerHTML = ''
+  slideInput.focus()
+})
+
+// PASTE BUTTONS
 pasteButton.addEventListener('click', async () => {
   try {
     input.value = await navigator.clipboard.readText()
     input.focus()
-    message.textContent = input.value ? 'Link pasted. Ready to fetch preview.' : 'Your clipboard is empty.'
+    message.textContent = input.value ? 'Link pasted. Ready when you are.' : 'Your clipboard is empty.'
     message.className = `form-message ${input.value ? 'success' : 'error'}`
   } catch {
     input.focus()
@@ -110,6 +144,20 @@ pasteButton.addEventListener('click', async () => {
   }
 })
 
+slidePasteBtn.addEventListener('click', async () => {
+  try {
+    slideInput.value = await navigator.clipboard.readText()
+    slideInput.focus()
+    slideMessage.textContent = slideInput.value ? 'Photo link pasted.' : 'Your clipboard is empty.'
+    slideMessage.style.color = slideInput.value ? '#16a34a' : '#dc2626'
+  } catch {
+    slideInput.focus()
+    slideMessage.textContent = 'Paste with Ctrl + V.'
+    slideMessage.style.color = '#dc2626'
+  }
+})
+
+// 1. VIDEO DIRECT DOWNLOAD FORM HANDLER
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = input.value.trim()
@@ -123,163 +171,9 @@ form.addEventListener('submit', async (event) => {
 
   button.disabled = true
   const isAudio = audioOnly.checked
-  button.querySelector('span')!.textContent = 'Fetching preview...'
+  button.querySelector('span')!.textContent = isAudio ? 'Finding audio...' : 'Downloading video...'
   message.textContent = ''
-  mediaPreview.innerHTML = '' 
 
-  const cleanUrl = rawUrl.split('?')[0]
-
-  try {
-    // CORS Bypass using corsproxy.io
-    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`)}`
-    const res = await fetch(apiUrl)
-    const tikwmData = await res.json()
-
-    if (tikwmData?.code === 0 && tikwmData?.data) {
-      const data = tikwmData.data
-      const authorName = data.author?.nickname || 'NOVA WALL\'S'
-      const authorAvatar = data.author?.avatar || 'https://www.tiktok.com/favicon.ico'
-      const likes = data.digg_count ? (data.digg_count > 999 ? (data.digg_count / 1000).toFixed(0) + 'K' : data.digg_count) : '4K'
-      const comments = data.comment_count || 41
-      const shares = data.share_count || 967
-
-      // 1. EXACT SSSTIK SLIDESHOW CARD (MATCHING VIDEO DEMO)
-      if (!isAudio && data.images && data.images.length > 0) {
-        message.textContent = 'Preview Ready!'
-        message.className = 'form-message success'
-
-        const imagesList = data.images as string[]
-
-        let dotsHtml = imagesList.map((_, idx) => 
-          `<span class="slide-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${idx === 0 ? '#38adf2' : 'rgba(255,255,255,0.4)'}; margin:0 3px; transition:0.2s;"></span>`
-        ).join('')
-
-        let cardHtml = `
-          <div style="background: #5c5283; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.3); color: #fff; text-align: left;">
-            <div style="display: flex; flex-wrap: wrap;">
-              
-              <!-- LEFT SLIDER -->
-              <div style="flex: 1 1 320px; position: relative; background: #111; display: flex; flex-direction: column;">
-                <div style="position: relative; width: 100%; height: 310px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                  <img id="carousel-img" src="${imagesList[0]}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
-                  
-                  ${imagesList.length > 1 ? `
-                    <button id="prev-slide" style="position: absolute; left: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">❮</button>
-                    <button id="next-slide" style="position: absolute; right: 10px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">❯</button>
-                  ` : ''}
-
-                  <!-- Dots indicators -->
-                  <div id="dots-container" style="position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;">
-                    ${dotsHtml}
-                  </div>
-                </div>
-                <a id="download-current-slide" href="${imagesList[0]}" target="_blank" download="tikclip-slide-1.jpg" style="background: #38adf2; color: #fff; text-align: center; padding: 12px; text-decoration: none; font-weight: bold; font-size: 15px; display: block;">Download this slide</a>
-              </div>
-
-              <!-- RIGHT BUTTONS PANEL -->
-              <div style="flex: 1 1 280px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 15px; background: #5c5283;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <img src="${authorAvatar}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #fff;" />
-                  <span style="font-size: 18px; font-weight: bold; letter-spacing: 0.5px;">${authorName}</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <button id="download-all-btn" style="background: #38adf2; color: #fff; border: none; padding: 12px; border-radius: 4px; font-size: 15px; font-weight: 500; cursor: pointer;">Download all (ZIP) (${imagesList.length})</button>
-                  ${data.play ? `<a href="${data.play}" target="_blank" download="tikclip-slideshow.mp4" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-size: 15px; font-weight: 500; display: block;">Download as video</a>` : ''}
-                  ${data.music ? `<a href="${data.music}" target="_blank" download="tikclip-audio.mp3" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-size: 15px; font-weight: 500; display: block;">Download MP3</a>` : ''}
-                </div>
-
-                <!-- BOTTOM STATS BAR -->
-                <div style="display: flex; justify-content: space-between; padding: 10px 15px; background: rgba(0,0,0,0.15); border-radius: 4px; font-size: 13px;">
-                  <span>👍 ${likes}</span>
-                  <span>💬 ${comments}</span>
-                  <span>🔗 ${shares}</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        `
-
-        mediaPreview.innerHTML = cardHtml
-
-        // Carousel State Management
-        let currentIndex = 0
-        const imgEl = document.querySelector<HTMLImageElement>('#carousel-img')!
-        const downloadBtn = document.querySelector<HTMLAnchorElement>('#download-current-slide')!
-        const prevBtn = document.querySelector('#prev-slide')
-        const nextBtn = document.querySelector('#next-slide')
-        const dots = document.querySelectorAll('.slide-dot')
-
-        const updateSlide = (index: number) => {
-          currentIndex = index
-          imgEl.src = imagesList[currentIndex]
-          downloadBtn.href = imagesList[currentIndex]
-          downloadBtn.download = `tikclip-slide-${currentIndex + 1}.jpg`
-
-          dots.forEach((dot, i) => {
-            (dot as HTMLElement).style.background = i === currentIndex ? '#38adf2' : 'rgba(255,255,255,0.4)'
-          })
-        }
-
-        prevBtn?.addEventListener('click', () => {
-          const nextIdx = currentIndex === 0 ? imagesList.length - 1 : currentIndex - 1
-          updateSlide(nextIdx)
-        })
-
-        nextBtn?.addEventListener('click', () => {
-          const nextIdx = currentIndex === imagesList.length - 1 ? 0 : currentIndex + 1
-          updateSlide(nextIdx)
-        })
-
-        document.querySelector('#download-all-btn')?.addEventListener('click', () => {
-          imagesList.forEach((imgUrl, idx) => {
-            setTimeout(() => {
-              const a = document.createElement('a')
-              a.href = imgUrl
-              a.target = '_blank'
-              a.download = `tikclip-slide-${idx + 1}.jpg`
-              document.body.appendChild(a)
-              a.click()
-              a.remove()
-            }, idx * 300)
-          })
-        })
-
-        button.disabled = false
-        button.querySelector('span')!.textContent = 'Fetch & Preview Media'
-        return
-      }
-
-      // 2. VIDEO CARD LAYOUT
-      if (data.play) {
-        message.textContent = 'Preview Ready!'
-        message.className = 'form-message success'
-
-        mediaPreview.innerHTML = `
-          <div style="background: #5c5283; border-radius: 10px; overflow: hidden; color: #fff; text-align: left; padding: 20px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-              <img src="${authorAvatar}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #fff;" />
-              <span style="font-size: 18px; font-weight: bold;">${authorName}</span>
-            </div>
-            <video src="${data.play}" poster="${data.cover || ''}" controls style="width: 100%; max-height: 380px; border-radius: 6px; background: #000; margin-bottom: 15px;"></video>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-              <a href="${data.play}" target="_blank" download="tikclip-video.mp4" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-size: 15px; font-weight: 500;">Download Video (MP4)</a>
-              ${data.music ? `<a href="${data.music}" target="_blank" download="tikclip-audio.mp3" style="background: #38adf2; color: #fff; text-decoration: none; text-align: center; padding: 12px; border-radius: 4px; font-size: 15px; font-weight: 500;">Download MP3</a>` : ''}
-            </div>
-          </div>
-        `
-
-        button.disabled = false
-        button.querySelector('span')!.textContent = 'Fetch & Preview Media'
-        return
-      }
-    }
-  } catch (err) {
-    console.warn("Direct proxy failed, fallback to backend download...", err)
-  }
-
-  // FALLBACK BACKEND ROUTE (Only used if proxy fails completely)
   try {
     const response = await fetch('/api/download', { 
       method: 'POST', 
@@ -295,20 +189,88 @@ form.addEventListener('submit', async (event) => {
     const data = JSON.parse(backendResponseText) as { error?: string; downloadUrl?: string; filename?: string }
     if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
     
-    mediaPreview.innerHTML = `
-      <div style="background: #5c5283; border-radius: 10px; padding: 20px; text-align: center; color: #fff;">
-        <p style="font-weight: 600; margin-top: 0; margin-bottom: 15px; font-size: 18px;">Media Ready!</p>
-        <a href="${data.downloadUrl}" target="_blank" download="${data.filename || 'tikclip-video.mp4'}" style="background: #38adf2; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block;">Download Media</a>
-      </div>
-    `
-    
-    message.textContent = 'Media fetched successfully!'
+    const download = document.createElement('a')
+    download.href = data.downloadUrl
+    download.download = data.filename || 'tikclip-video.mp4'
+    document.body.appendChild(download)
+    download.click()
+    download.remove()
+
+    message.textContent = isAudio ? 'Your audio download is on its way.' : 'Your video download is on its way.'
     message.className = 'form-message success'
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Something went wrong. Try another link.'
     message.className = 'form-message error'
   } finally {
     button.disabled = false
-    button.querySelector('span')!.textContent = 'Fetch & Preview Media'
+    button.querySelector('span')!.textContent = 'Download Video'
+  }
+})
+
+// 2. TIKTOK SLIDES DIRECT DOWNLOAD HANDLER
+slideForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  const rawUrl = slideInput.value.trim()
+
+  if (!rawUrl || !/(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)/i.test(rawUrl)) {
+    slideMessage.textContent = 'Please enter a valid TikTok photo/slide link.'
+    slideMessage.style.color = '#dc2626'
+    return
+  }
+
+  slideSubmitBtn.disabled = true
+  slideSubmitBtn.textContent = 'Fetching Slides...'
+  slideMessage.textContent = ''
+  slideResults.innerHTML = ''
+
+  const cleanUrl = rawUrl.split('?')[0]
+
+  try {
+    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`)}`
+    const res = await fetch(apiUrl)
+    const tikwmData = await res.json()
+
+    if (tikwmData?.code === 0 && tikwmData?.data?.images && tikwmData.data.images.length > 0) {
+      const imagesList = tikwmData.data.images as string[]
+      
+      slideMessage.textContent = `Found ${imagesList.length} slides! Direct download starting...`
+      slideMessage.style.color = '#16a34a'
+
+      // AUTO TRIGGER DOWNLOAD FOR ALL SLIDES
+      imagesList.forEach((imgUrl, idx) => {
+        setTimeout(() => {
+          const a = document.createElement('a')
+          a.href = imgUrl
+          a.target = '_blank'
+          a.download = `tikclip-slide-${idx + 1}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }, idx * 300)
+      })
+
+      // ALSO SHOW DOWNLOAD LINKS BELOW
+      let slidesHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">`
+      imagesList.forEach((imgUrl, idx) => {
+        slidesHtml += `
+          <div style="min-width: 120px; text-align: center; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #ccc;">
+            <img src="${imgUrl}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover; border-radius: 4px;" />
+            <a href="${imgUrl}" target="_blank" download="tikclip-slide-${idx + 1}.jpg" style="display: inline-block; margin-top: 6px; background: #38adf2; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold;">Slide ${idx + 1}</a>
+          </div>
+        `
+      })
+      slidesHtml += `</div>`
+      slideResults.innerHTML = slidesHtml
+
+    } else {
+      slideMessage.textContent = 'No photo slides found in this link. Make sure it is a TikTok photo post.'
+      slideMessage.style.color = '#dc2626'
+    }
+  } catch (err) {
+    slideMessage.textContent = 'Failed to fetch slides. Please try again.'
+    slideMessage.style.color = '#dc2626'
+  } finally {
+    slideSubmitBtn.disabled = false
+    slideSubmitBtn.textContent = 'Download Slides'
   }
 })
