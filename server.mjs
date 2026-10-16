@@ -21,7 +21,7 @@ app.post('/api/download', async (request, response) => {
     return response.status(400).json({ error: 'Please enter a valid link from TikTok, Instagram, YouTube, Facebook, or X.' })
   }
 
-  // 1. TIKTOK NATIVE METHOD (Fast & Reliable)
+  // 1. TIKTOK NATIVE RESOLVER
   if (isTikTokRegex.test(url)) {
     try {
       const resolver = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, { 
@@ -41,55 +41,48 @@ app.post('/api/download', async (request, response) => {
     }
   }
 
-  // 2. UNIVERSAL RESOLVER (Cobalt Current Active v10 API Endpoint)
-  const cobaltInstances = [
-    'https://api.cobalt.tools/',
-    'https://cobalt-api.kwippy.com/'
-  ]
-
-  let lastErrorMessage = 'Could not resolve media from that link.'
-
-  for (const instance of cobaltInstances) {
-    try {
-      const cobaltRes = await fetch(instance, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: url,
-          videoQuality: quality === 'max' ? 'max' : (quality === 'standard' ? '480' : '720'),
-          downloadMode: mode === 'audio' ? 'audio' : 'auto'
-        })
+  // 2. UNIVERSAL RESOLVER (Correct Cobalt v10 Endpoint: /api/json)
+  try {
+    const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
+      },
+      body: JSON.stringify({
+        url: url,
+        videoQuality: quality === 'max' ? 'max' : (quality === 'standard' ? '480' : '720'),
+        isAudioOnly: mode === 'audio'
       })
+    })
 
-      const cobaltData = await cobaltRes.json()
+    const cobaltData = await cobaltRes.json()
 
-      if (cobaltRes.ok && (cobaltData.status === 'redirect' || cobaltData.status === 'tunnel' || cobaltData.status === 'picker')) {
-        let targetMediaUrl = ''
-        if (cobaltData.status === 'redirect' || cobaltData.status === 'tunnel') {
-          targetMediaUrl = cobaltData.url
-        } else if (cobaltData.status === 'picker' && cobaltData.picker?.length > 0) {
-          targetMediaUrl = cobaltData.picker[0].url
-        }
-
-        if (targetMediaUrl) {
-          const extension = mode === 'audio' ? 'mp3' : 'mp4'
-          return response.json({ 
-            downloadUrl: `/api/media?source=${encodeURIComponent(targetMediaUrl)}&type=${mode}`, 
-            filename: `tikclip-${mode}.${extension}` 
-          })
-        }
-      } else if (cobaltData.text) {
-        lastErrorMessage = cobaltData.text
-      }
-    } catch (err) {
-      console.error(`Error with instance ${instance}:`, err)
+    if (!cobaltRes.ok || cobaltData.status === 'error' || cobaltData.status === 'rate-limit') {
+      throw new Error(cobaltData.text || cobaltData.message || 'Could not resolve media from that link.')
     }
-  }
 
-  return response.status(502).json({ error: lastErrorMessage })
+    let targetMediaUrl = ''
+    if (cobaltData.status === 'redirect' || cobaltData.status === 'tunnel') {
+      targetMediaUrl = cobaltData.url
+    } else if (cobaltData.status === 'picker' && cobaltData.picker?.length > 0) {
+      targetMediaUrl = cobaltData.picker[0].url
+    }
+
+    if (!targetMediaUrl) {
+      throw new Error('No downloadable media found for that link.')
+    }
+
+    const extension = mode === 'audio' ? 'mp3' : 'mp4'
+    return response.json({ 
+      downloadUrl: `/api/media?source=${encodeURIComponent(targetMediaUrl)}&type=${mode}`, 
+      filename: cobaltData.filename || `tikclip-${mode}.${extension}` 
+    })
+
+  } catch (error) {
+    return response.status(502).json({ error: error instanceof Error ? error.message : 'Could not resolve that video.' })
+  }
 })
 
 app.get('/api/media', async (request, response) => {
@@ -115,6 +108,6 @@ if (process.env.NODE_ENV === 'production') {
 
 export default app
 
-if (!process.env.VERCEL) {
+if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(port, () => console.log(`TikClip API running at http://localhost:${port}`))
 }
