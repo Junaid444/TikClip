@@ -21,10 +21,12 @@ app.post('/api/download', async (request, response) => {
     return response.status(400).json({ error: 'Please enter a valid link from TikTok, Instagram, YouTube, Facebook, or X.' })
   }
 
-  // 1. TIKTOK SPECIFIC HANDLING (Keep Old Fast Logic Intact)
+  // 1. TIKTOK NATIVE METHOD (Fast & Reliable)
   if (isTikTokRegex.test(url)) {
     try {
-      const resolver = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, { headers: { 'User-Agent': 'TikClip/1.0' } })
+      const resolver = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, { 
+        headers: { 'User-Agent': 'TikClip/1.0' } 
+      })
       if (resolver.ok) {
         const result = await resolver.json()
         const videoUrl = quality === 'standard' ? result?.data?.play : result?.data?.hdplay || result?.data?.play
@@ -35,51 +37,59 @@ app.post('/api/download', async (request, response) => {
         }
       }
     } catch (e) {
-      console.warn("TikTok native fetch failed, falling back to universal resolver.")
+      console.warn("TikTok native fetch failed, using universal fallback.")
     }
   }
 
-  // 2. UNIVERSAL RESOLVER FOR YOUTUBE, INSTAGRAM, FACEBOOK, TWITTER/X & TIKTOK FALLBACK
-  try {
-    const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: url,
-        vQuality: quality === 'max' ? 'max' : (quality === 'standard' ? '480' : '720'),
-        audioOnly: mode === 'audio'
+  // 2. UNIVERSAL RESOLVER (Cobalt Current Active v10 API Endpoint)
+  const cobaltInstances = [
+    'https://api.cobalt.tools/',
+    'https://cobalt-api.kwippy.com/'
+  ]
+
+  let lastErrorMessage = 'Could not resolve media from that link.'
+
+  for (const instance of cobaltInstances) {
+    try {
+      const cobaltRes = await fetch(instance, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: url,
+          videoQuality: quality === 'max' ? 'max' : (quality === 'standard' ? '480' : '720'),
+          downloadMode: mode === 'audio' ? 'audio' : 'auto'
+        })
       })
-    })
 
-    const cobaltData = await cobaltRes.json()
+      const cobaltData = await cobaltRes.json()
 
-    if (!cobaltRes.ok || cobaltData.status === 'error') {
-      throw new Error(cobaltData.text || 'Could not fetch media from that link.')
+      if (cobaltRes.ok && (cobaltData.status === 'redirect' || cobaltData.status === 'tunnel' || cobaltData.status === 'picker')) {
+        let targetMediaUrl = ''
+        if (cobaltData.status === 'redirect' || cobaltData.status === 'tunnel') {
+          targetMediaUrl = cobaltData.url
+        } else if (cobaltData.status === 'picker' && cobaltData.picker?.length > 0) {
+          targetMediaUrl = cobaltData.picker[0].url
+        }
+
+        if (targetMediaUrl) {
+          const extension = mode === 'audio' ? 'mp3' : 'mp4'
+          return response.json({ 
+            downloadUrl: `/api/media?source=${encodeURIComponent(targetMediaUrl)}&type=${mode}`, 
+            filename: `tikclip-${mode}.${extension}` 
+          })
+        }
+      } else if (cobaltData.text) {
+        lastErrorMessage = cobaltData.text
+      }
+    } catch (err) {
+      console.error(`Error with instance ${instance}:`, err)
     }
-
-    let targetMediaUrl = ''
-    if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
-      targetMediaUrl = cobaltData.url
-    } else if (cobaltData.status === 'picker' && cobaltData.picker?.length > 0) {
-      targetMediaUrl = cobaltData.picker[0].url
-    }
-
-    if (!targetMediaUrl) {
-      throw new Error('No downloadable media found for that link.')
-    }
-
-    const extension = mode === 'audio' ? 'mp3' : 'mp4'
-    return response.json({ 
-      downloadUrl: `/api/media?source=${encodeURIComponent(targetMediaUrl)}&type=${mode}`, 
-      filename: `tikclip-${mode}.${extension}` 
-    })
-
-  } catch (error) {
-    return response.status(502).json({ error: error instanceof Error ? error.message : 'Could not resolve that video.' })
   }
+
+  return response.status(502).json({ error: lastErrorMessage })
 })
 
 app.get('/api/media', async (request, response) => {
