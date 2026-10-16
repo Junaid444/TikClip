@@ -17,16 +17,16 @@ app.innerHTML = `
   </header>
   <main>
     <section class="hero">
-      <div class="eyebrow"><span class="eyebrow-line"></span> TikTok video & photo tool</div>
+      <div class="eyebrow"><span class="eyebrow-line"></span> All-in-one video & photo tool</div>
       <h1>Created by<br><em>Junaid Rafi Shah</em></h1>
-      <p class="lede">Save TikTok videos and photo slides without the watermark. Just paste a link and let TikClip handle the rest.</p>
+      <p class="lede">Save videos and photos from TikTok, Instagram, YouTube, Facebook, and Twitter/X without watermarks. Just paste a link and let TikClip handle the rest.</p>
 
       <!-- 1. MERGED SMART DOWNLOAD FORM -->
       <form class="download-form" id="download-form">
-        <label for="video-url" class="sr-only">TikTok link</label>
+        <label for="video-url" class="sr-only">Media link</label>
         <div class="input-shell">
           <span class="link-icon">↗</span>
-          <input id="video-url" name="url" type="url" placeholder="Paste a TikTok link here (Video or Photo)" autocomplete="off" required>
+          <input id="video-url" name="url" type="url" placeholder="Paste a link here (TikTok, IG, YT, FB, X)..." autocomplete="off" required>
           <button class="clear-button" id="clear-button" type="button" style="background: rgba(0,0,0,0.08); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-right: 6px; transition: all 0.2s ease;">Clear</button>
           <button class="paste-button" id="paste-button" type="button">Paste</button>
         </div>
@@ -53,13 +53,13 @@ app.innerHTML = `
     <section class="how-it-works" aria-labelledby="how-title">
       <div class="section-heading"><span class="section-kicker">01 / 03</span><h2 id="how-title">Three seconds<br>to your camera roll.</h2></div>
       <div class="steps">
-        <article class="step"><span class="step-number">01</span><div><h3>Copy your link</h3><p>Use the share button on any TikTok video or photo slide and copy its link.</p></div></article>
-        <article class="step"><span class="step-number">02</span><div><h3>Drop it here</h3><p>Paste the link above. We will detect whether it's a video or a photo post automatically.</p></div></article>
+        <article class="step"><span class="step-number">01</span><div><h3>Copy your link</h3><p>Use the share button on any video or photo post from supported platforms and copy its link.</p></div></article>
+        <article class="step"><span class="step-number">02</span><div><h3>Drop it here</h3><p>Paste the link above. We will detect the platform and fetch your media automatically.</p></div></article>
         <article class="step"><span class="step-number">03</span><div><h3>Keep the moment</h3><p>Download your media in high quality and use it wherever you like.</p></div></article>
       </div>
     </section>
   </main>
-  <footer><span>tikclip / made for your saved folder</span><span>MP4 · HD · Photos · no watermark</span></footer>
+  <footer><span>tikclip / made for your saved folder</span><span>MP4 · HD · Reels · Shorts · Photos · No Watermark</span></footer>
 `
 
 const form = document.querySelector<HTMLFormElement>('#download-form')!
@@ -126,13 +126,16 @@ pasteButton.addEventListener('click', async () => {
   }
 })
 
-// SMART FORM SUBMISSION (Auto Detects Slides or Video)
+// SUPPORTED PLATFORMS REGEX (TikTok, Instagram, YouTube, Facebook, Twitter/X)
+const supportedPlatformsRegex = /(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|instagram\.com|instagr\.am|youtube\.com|youtu\.be|facebook\.com|fb\.watch|fb\.me|twitter\.com|x\.com)/i
+
+// SMART FORM SUBMISSION (Auto Detects Slides or Video across Supported Platforms)
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const rawUrl = input.value.trim()
   
-  if (!rawUrl || !/(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)/i.test(rawUrl)) {
-    message.textContent = 'That does not look like a TikTok link yet.'
+  if (!rawUrl || !supportedPlatformsRegex.test(rawUrl)) {
+    message.textContent = 'Please enter a valid link from TikTok, Instagram, YouTube, Facebook, or X (Twitter).'
     message.className = 'form-message error'
     input.focus()
     return
@@ -148,8 +151,7 @@ form.addEventListener('submit', async (event) => {
     let isSlideshow = false
     let imagesList: string[] = []
 
-    // STEP 1: CHECK IF IT'S A PHOTO SLIDESHOW
-    // Agar user ne 'Audio Only' check nahi kiya, toh hum check karte hain ke yeh slides toh nahi.
+    // STEP 1: CHECK IF IT'S A PHOTO SLIDESHOW / CAROUSEL
     if (!isAudio) {
       try {
         const slideRes = await fetch(`/api/slides?url=${encodeURIComponent(rawUrl)}`)
@@ -167,7 +169,7 @@ form.addEventListener('submit', async (event) => {
 
     // STEP 2: IF SLIDES FOUND, RENDER SLIDES UI
     if (isSlideshow && imagesList.length > 0) {
-      message.textContent = `Found ${imagesList.length} slides! Select individual slides to download below.`
+      message.textContent = `Found ${imagesList.length} photos! Select individual slides to download below.`
       message.className = 'form-message success'
 
       let slidesHtml = `
@@ -182,11 +184,11 @@ form.addEventListener('submit', async (event) => {
         slidesHtml += `
           <div style="width: 140px; min-width: 140px; max-width: 140px; flex: 0 0 140px; text-align: center; background: var(--bg-color, #fff); padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; box-sizing: border-box;">
             <div style="width: 100%; height: 220px; overflow: hidden; border-radius: 6px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
-              <img src="${imgUrl}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+              <img src="${imgUrl}" alt="Photo ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
             </div>
             <div>
-              <span style="display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.7;">Slide ${idx + 1}</span>
-              <button class="single-slide-download-btn" data-img-url="${imgUrl}" data-filename="tikclip-slide-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download Photo</button>
+              <span style="display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.7;">Photo ${idx + 1}</span>
+              <button class="single-slide-download-btn" data-img-url="${imgUrl}" data-filename="tikclip-photo-${idx + 1}.jpg" style="display: block; width: 100%; box-sizing: border-box; background: #38adf2; color: #fff; padding: 6px 0; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Download Photo</button>
             </div>
           </div>
         `
@@ -205,7 +207,7 @@ form.addEventListener('submit', async (event) => {
 
       document.querySelector<HTMLButtonElement>('#download-all-slides-btn')?.addEventListener('click', async () => {
         for (let idx = 0; idx < imagesList.length; idx++) {
-          triggerProxiedDownload(imagesList[idx], `tikclip-slide-${idx + 1}.jpg`)
+          triggerProxiedDownload(imagesList[idx], `tikclip-photo-${idx + 1}.jpg`)
           await new Promise((r) => setTimeout(r, 400)) // Throttle to prevent browser crash
         }
       })
@@ -215,7 +217,7 @@ form.addEventListener('submit', async (event) => {
       return // Process finished for slides!
     }
 
-    // STEP 3: IF NOT SLIDES, PROCESS AS VIDEO/AUDIO (Fallback)
+    // STEP 3: PROCESS AS VIDEO / AUDIO ACROSS SUPPORTED PLATFORMS
     button.querySelector('span')!.textContent = isAudio ? 'Downloading audio...' : 'Downloading video...'
     
     const response = await fetch('/api/download', { 
@@ -230,11 +232,11 @@ form.addEventListener('submit', async (event) => {
     }
     
     const data = JSON.parse(backendResponseText) as { error?: string; downloadUrl?: string; filename?: string }
-    if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find that video.')
+    if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'We could not find media for that link.')
     
     const download = document.createElement('a')
     download.href = data.downloadUrl
-    download.download = data.filename || 'tikclip-video.mp4'
+    download.download = data.filename || 'tikclip-media.mp4'
     document.body.appendChild(download)
     download.click()
     download.remove()
